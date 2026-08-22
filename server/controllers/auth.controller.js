@@ -190,35 +190,42 @@ export const login = async (req, res, next) => {
     const cleanLower = inputIdentifier.toLowerCase();
     const cleanUpper = inputIdentifier.toUpperCase();
 
-    let user = dataStore.findUserByEmail(cleanLower) || dataStore.findUserByEmployeeId(cleanUpper);
+    let user = null;
 
-    // Direct check in Neon DB if not found in memory
-    if (!user) {
-      try {
-        const dbRes = await query(
-          'SELECT * FROM users WHERE LOWER(email) = LOWER($1) OR UPPER(employee_id) = UPPER($1) LIMIT 1;',
-          [inputIdentifier]
-        );
-        if (dbRes.rows.length > 0) {
-          const r = dbRes.rows[0];
-          user = {
-            id: r.id,
-            employeeId: r.employee_id,
-            email: r.email,
-            fullName: r.full_name,
-            passwordHash: r.password_hash,
-            role: r.role,
-            status: r.status,
-            isVerified: r.is_verified,
-            avatar: r.avatar,
-            createdAt: r.created_at,
-            lastLoginAt: r.last_login_at
-          };
-          dataStore.users.push(user);
-        }
-      } catch (dbErr) {
-        console.error('Database login lookup error:', dbErr.message);
+    // ALWAYS query Neon DB directly for login — pass pre-lowercased values
+    // to avoid PostgreSQL LOWER() function issues with certain drivers
+    try {
+      const dbRes = await query(
+        'SELECT * FROM users WHERE email = $1 OR email = $2 OR employee_id = $3 OR employee_id = $4 LIMIT 1;',
+        [cleanLower, inputIdentifier, cleanUpper, inputIdentifier]
+      );
+      if (dbRes.rows.length > 0) {
+        const r = dbRes.rows[0];
+        user = {
+          id: r.id,
+          employeeId: r.employee_id,
+          email: r.email,
+          fullName: r.full_name,
+          passwordHash: r.password_hash,
+          role: r.role,
+          status: r.status,
+          isVerified: r.is_verified,
+          avatar: r.avatar,
+          createdAt: r.created_at,
+          lastLoginAt: r.last_login_at
+        };
       }
+    } catch (dbErr) {
+      console.error('[Login DB Error]:', dbErr.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Database connection error. Please try again.'
+      });
+    }
+
+    // Fallback: check in-memory dataStore cache
+    if (!user) {
+      user = dataStore.findUserByEmail(cleanLower) || dataStore.findUserByEmployeeId(cleanUpper);
     }
 
     if (!user) {
