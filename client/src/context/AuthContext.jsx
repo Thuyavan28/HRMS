@@ -29,19 +29,31 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, [checkAuth]);
 
-  const login = async (email, password) => {
+  const login = async (credentialsOrEmail, maybePassword) => {
     try {
       setError(null);
+      let email, password;
+      if (typeof credentialsOrEmail === 'object' && credentialsOrEmail !== null) {
+        email = credentialsOrEmail.email;
+        password = credentialsOrEmail.password;
+      } else {
+        email = credentialsOrEmail;
+        password = maybePassword;
+      }
+
       const res = await authService.login({ email, password });
       if (res.success && res.data && res.data.user) {
         setUser(res.data.user);
-        return { success: true, user: res.data.user };
+        return { success: true, data: res.data, user: res.data.user };
       }
       return { success: false, message: res.message || 'Login failed' };
     } catch (err) {
-      const msg = err.response?.data?.message || 'Invalid email or password';
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.errors?.[0]?.message ||
+        'Invalid email or password';
       setError(msg);
-      return { success: false, message: msg };
+      throw err;
     }
   };
 
@@ -51,13 +63,13 @@ export const AuthProvider = ({ children }) => {
       const res = await authService.register(userData);
       if (res.success && res.data && res.data.user) {
         setUser(res.data.user);
-        return { success: true, user: res.data.user };
+        return { success: true, data: res.data, user: res.data.user };
       }
       return { success: false, message: res.message || 'Registration failed' };
     } catch (err) {
       const msg = err.response?.data?.message || 'Registration failed. Please check your inputs.';
       setError(msg);
-      return { success: false, message: msg };
+      throw err;
     }
   };
 
