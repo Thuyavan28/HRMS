@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import { initializeDatabase } from './database/initDb.js';
+import { dataStore } from './repositories/dataStore.js';
 
 // Load environment variables
 dotenv.config();
@@ -56,7 +58,8 @@ app.use('/api', apiGeneralLimiter);
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Dayflow HR System API is running smoothly.',
+    message: 'Dayflow HR System API is connected to Neon DB & running smoothly.',
+    database: 'Neon PostgreSQL (Connected)',
     timestamp: new Date().toISOString(),
     version: '1.0.0'
   });
@@ -76,11 +79,28 @@ app.use('/api/admin', adminRoutes);
 app.use(notFoundHandler);
 app.use(globalErrorHandler);
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`\n🚀 [Dayflow Server] REST API listening on http://localhost:${PORT}`);
-  console.log(`🌐 Allowed Client Origin: ${CLIENT_URL}`);
-  console.log(`🔒 Authentication: JWT with HTTP-only Cookies\n`);
-});
+// Start server & initialize Neon DB
+async function startServer() {
+  try {
+    // 1. Initialize Neon DB Tables & Schema
+    await initializeDatabase();
+
+    // 2. Sync in-memory repositories with live Neon DB data
+    await dataStore.syncFromPostgres();
+
+    // 3. Start Express server
+    app.listen(PORT, () => {
+      console.log(`\n🚀 [Dayflow Server] REST API listening on http://localhost:${PORT}`);
+      console.log(`🐘 [Neon DB] Connected to PostgreSQL instance`);
+      console.log(`🌐 Allowed Client Origin: ${CLIENT_URL}`);
+      console.log(`🔒 Authentication: JWT with HTTP-only Cookies\n`);
+    });
+  } catch (err) {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  }
+}
+
+startServer();
 
 export default app;

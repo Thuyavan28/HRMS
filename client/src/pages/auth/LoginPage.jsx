@@ -1,93 +1,104 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Briefcase, Lock, Mail, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  Briefcase,
+  Lock,
+  Mail,
+  ArrowRight,
+  Sparkles,
+  ShieldCheck,
+  UserCheck,
+  KeyRound,
+  AlertCircle
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
 export const LoginPage = () => {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const toast = useToast();
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [error, setError] = useState('');
+
+  const { login } = useAuth();
+  const toast = useToast();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) {
-      setErrorMsg('Please enter both your work email and password.');
-      return;
-    }
-
     try {
       setLoading(true);
-      setErrorMsg('');
-      const res = await login(email, password);
-
-      if (res.success) {
-        toast.success(`Welcome back, ${res.user.fullName}!`);
-        const from = location.state?.from?.pathname;
-        if (from) {
-          navigate(from, { replace: true });
-        } else {
-          navigate(res.user.role === 'admin' ? '/admin/dashboard' : '/employee/dashboard', {
-            replace: true
-          });
-        }
-      } else {
-        setErrorMsg(res.message || 'Invalid email or password.');
+      setError('');
+      const res = await login({ email, password });
+      if (res.success && res.data) {
+        toast.success(`Welcome back, ${res.data.user.fullName}!`);
+        const targetRoute = res.data.user.role === 'admin' ? '/admin/dashboard' : '/employee/dashboard';
+        navigate(targetRoute, { replace: true });
       }
     } catch (err) {
-      setErrorMsg('Sign in failed. Please verify your credentials.');
+      const msg = err.response?.data?.message || 'Invalid email or password. Please try again.';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickLogin = (demoEmail, demoPassword) => {
+  const handleQuickDemoLogin = async (demoEmail, demoPassword) => {
     setEmail(demoEmail);
     setPassword(demoPassword);
-    setErrorMsg('');
+    try {
+      setLoading(true);
+      setError('');
+      const res = await login({ email: demoEmail, password: demoPassword });
+      if (res.success && res.data) {
+        toast.success(`Demo sign-in as ${res.data.user.fullName}`);
+        const targetRoute = res.data.user.role === 'admin' ? '/admin/dashboard' : '/employee/dashboard';
+        navigate(targetRoute, { replace: true });
+      }
+    } catch (err) {
+      setError('Failed demo sign-in.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-dark-900 flex flex-col justify-center items-center p-4 relative overflow-hidden">
-      {/* Subtle Background Glows */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-72 h-72 bg-sky-500/5 rounded-full blur-3xl pointer-events-none" />
+      {/* Background Lighting */}
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Main Container */}
       <div className="w-full max-w-md z-10">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-teal-500 text-white shadow-glow-teal mb-4">
-            <Briefcase className="w-7 h-7" />
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-teal-500 text-white shadow-glow-teal mb-3">
+            <Briefcase className="w-6 h-6" />
           </div>
-          <h1 className="text-3xl font-black text-slate-100 tracking-tight">Dayflow</h1>
-          <p className="text-sm text-dark-300 mt-1.5">Every workday, perfectly aligned.</p>
+          <h1 className="text-2xl font-black text-slate-100 tracking-tight">Dayflow HRMS</h1>
+          <p className="text-xs text-dark-300 mt-1">Every workday, perfectly aligned.</p>
         </div>
 
-        {/* Auth Card */}
+        {/* Login Card */}
         <div className="card-surface p-8 backdrop-blur-xl border-dark-700/80 shadow-2xl">
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-slate-100">Welcome back</h2>
-            <p className="text-xs text-dark-300 mt-1">Sign in to your Dayflow workspace account</p>
+            <h2 className="text-xl font-bold text-slate-100">Sign In to Your Workspace</h2>
+            <p className="text-xs text-dark-300 mt-1">
+              Enter your work email and password to access your HR portal
+            </p>
           </div>
 
-          {errorMsg && (
-            <div className="mb-5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-2.5 text-xs text-rose-300">
+          {error && (
+            <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-2.5 text-xs text-rose-300 animate-shake">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>{errorMsg}</span>
+              <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                Work Email
+                Work Email Address
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-dark-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -105,8 +116,8 @@ export const LoginPage = () => {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-semibold text-dark-300">Password</label>
-                <span className="text-[11px] text-teal-400 hover:underline cursor-pointer">
-                  Forgot password?
+                <span className="text-[11px] text-teal-400/80 hover:text-teal-300 cursor-pointer">
+                  Forgot Password?
                 </span>
               </div>
               <div className="relative">
@@ -125,53 +136,72 @@ export const LoginPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary py-3 text-sm font-semibold flex items-center justify-center gap-2 mt-2 cursor-pointer"
+              className="w-full btn-primary py-2.5 text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-glow-teal-sm"
             >
-              {loading ? (
-                <span>Signing in...</span>
-              ) : (
-                <>
-                  <span>Sign In</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
+              <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           </form>
 
-          {/* Quick Demo Credentials Switcher */}
+          {/* Invitation Onboarding Banner */}
           <div className="mt-6 pt-5 border-t border-dark-700">
-            <p className="text-[11px] font-semibold text-dark-400 uppercase tracking-wider mb-2.5 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-teal-400" /> One-Click Demo Credentials:
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('alex.morgan@dayflow.com', 'Employee@1234')}
-                className="px-3 py-2 text-left rounded-lg bg-dark-850 hover:bg-dark-750 border border-dark-700 hover:border-teal-500/50 transition-all text-xs cursor-pointer group"
+            <div className="p-3.5 rounded-xl bg-dark-850 border border-dark-700 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <KeyRound className="w-4 h-4 text-teal-400 flex-shrink-0" />
+                <div className="text-[11px]">
+                  <span className="font-semibold text-slate-200 block">New team member?</span>
+                  <span className="text-dark-400">Received an HR invitation link?</span>
+                </div>
+              </div>
+              <Link
+                to="/activate"
+                className="px-2.5 py-1 rounded-lg bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 border border-teal-500/30 text-xs font-bold whitespace-nowrap"
               >
-                <span className="font-semibold text-slate-200 block group-hover:text-teal-400">
-                  Alex Morgan
-                </span>
-                <span className="text-[10px] text-dark-400">Employee Role</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('admin@dayflow.com', 'Admin@1234')}
-                className="px-3 py-2 text-left rounded-lg bg-dark-850 hover:bg-dark-750 border border-dark-700 hover:border-teal-500/50 transition-all text-xs cursor-pointer group"
-              >
-                <span className="font-semibold text-slate-200 block group-hover:text-teal-400">
-                  Eleanor Vance
-                </span>
-                <span className="text-[10px] text-dark-400">HR Admin Role</span>
-              </button>
+                Activate Account →
+              </Link>
             </div>
           </div>
 
-          <div className="mt-6 text-center text-xs text-dark-300">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-teal-400 hover:text-teal-300 font-semibold">
-              Create one now
-            </Link>
+          {/* Quick Demo Logins Section */}
+          <div className="mt-6 pt-5 border-t border-dark-700 space-y-2">
+            <div className="flex items-center gap-1.5 text-dark-400 text-[11px] font-semibold uppercase tracking-wider mb-2">
+              <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+              <span>Instant Demo Credentials</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin('admin@dayflow.com', 'Admin@1234')}
+                className="p-2 rounded-xl bg-dark-850 hover:bg-dark-750 border border-dark-700 text-left transition-all group cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-amber-400" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-200 group-hover:text-amber-400">
+                      Eleanor Vance
+                    </p>
+                    <p className="text-[10px] text-dark-400 font-mono">HR Admin Role</p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin('alex.morgan@dayflow.com', 'Employee@1234')}
+                className="p-2 rounded-xl bg-dark-850 hover:bg-dark-750 border border-dark-700 text-left transition-all group cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <UserCheck className="w-4 h-4 text-teal-400" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-200 group-hover:text-teal-400">
+                      Alex Morgan
+                    </p>
+                    <p className="text-[10px] text-dark-400 font-mono">Employee Role</p>
+                  </div>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       </div>

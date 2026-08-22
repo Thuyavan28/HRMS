@@ -7,7 +7,7 @@ import { ProtectedRoute } from './components/layout/ProtectedRoute';
 
 // Auth Pages
 import { LoginPage } from './pages/auth/LoginPage';
-import { RegisterPage } from './pages/auth/RegisterPage';
+import { ActivateAccountPage } from './pages/auth/ActivateAccountPage';
 import { VerifyEmailPage } from './pages/auth/VerifyEmailPage';
 
 // Employee Pages
@@ -47,7 +47,8 @@ function App() {
           <Routes>
             {/* Public Auth Routes */}
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/activate" element={<ActivateAccountPage />} />
+            <Route path="/register" element={<Navigate to="/activate" replace />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
 
             {/* Root Redirect */}

@@ -31,6 +31,21 @@ export const adminService = {
     return response.data;
   },
 
+  getInvitations: async () => {
+    const response = await api.get('/admin/invitations');
+    return response.data;
+  },
+
+  resendInvitation: async (id) => {
+    const response = await api.post(`/admin/invitations/${id}/resend`);
+    return response.data;
+  },
+
+  revokeInvitation: async (id) => {
+    const response = await api.delete(`/admin/invitations/${id}`);
+    return response.data;
+  },
+
   getAttendance: async (params) => {
     const response = await api.get('/admin/attendance', { params });
     return response.data;

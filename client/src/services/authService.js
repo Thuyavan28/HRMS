@@ -1,6 +1,18 @@
 import api from './api';
 
 export const authService = {
+  validateInvitation: async (token) => {
+    const response = await api.get('/auth/invitation/validate', {
+      params: { token }
+    });
+    return response.data;
+  },
+
+  activateAccount: async (activationData) => {
+    const response = await api.post('/auth/activate', activationData);
+    return response.data;
+  },
+
   login: async (credentials) => {
     const response = await api.post('/auth/login', credentials);
     return response.data;

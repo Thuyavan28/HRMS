@@ -5,60 +5,137 @@ import { generateTokens, setAuthCookies, clearAuthCookies } from '../utils/token
 
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dayflow_super_secret_jwt_refresh_token_key_2026_$%^';
 
-export const register = async (req, res, next) => {
+/**
+ * Validates an invitation token and returns the trusted read-only invitation metadata.
+ * GET /api/auth/invitation/validate?token=...
+ */
+export const validateInvitation = async (req, res, next) => {
   try {
-    const { fullName, employeeId, email, password, role } = req.body;
-
-    // Check if email or employeeId already exists
-    const existingEmail = dataStore.findUserByEmail(email);
-    if (existingEmail) {
-      return res.status(409).json({
+    const { token } = req.query;
+    if (!token) {
+      return res.status(400).json({
         success: false,
-        message: 'An account with this work email already exists.'
+        message: 'Invitation token parameter is required.'
       });
     }
 
-    const existingEmpId = dataStore.findUserByEmployeeId(employeeId);
-    if (existingEmpId) {
-      return res.status(409).json({
+    const invitation = dataStore.findInvitationByToken(token);
+    if (!invitation) {
+      return res.status(404).json({
         success: false,
-        message: 'This Employee ID is already registered.'
+        message: 'Invalid invitation link. Please request a new invitation from your HR administrator.'
       });
     }
 
-    // Hash password with bcrypt (12 salt rounds)
+    if (invitation.status === 'ACCEPTED') {
+      return res.status(400).json({
+        success: false,
+        message: 'This invitation has already been used and activated. Please sign in with your password.'
+      });
+    }
+
+    if (invitation.status === 'REVOKED') {
+      return res.status(400).json({
+        success: false,
+        message: 'This invitation has been revoked by HR administration. Please contact your HR department.'
+      });
+    }
+
+    // Check expiration
+    if (new Date() > new Date(invitation.expiresAt)) {
+      invitation.status = 'EXPIRED';
+      return res.status(410).json({
+        success: false,
+        message: 'This invitation link has expired. Please ask your HR administrator to resend the invitation.'
+      });
+    }
+
+    // Return trusted invitation data (Role is strictly authoritative from DB)
+    res.status(200).json({
+      success: true,
+      data: {
+        employeeId: invitation.employeeId,
+        email: invitation.email,
+        fullName: invitation.fullName,
+        role: invitation.role, // strictly read-only for frontend
+        expiresAt: invitation.expiresAt,
+        createdBy: invitation.createdBy
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Activates an employee account from a valid invitation.
+ * POST /api/auth/activate
+ *
+ * CRITICAL SECURITY GUARANTEE:
+ * The backend completely ignores any 'role' supplied in the request body.
+ * The role is strictly retrieved from the trusted invitation database record.
+ */
+export const activateAccount = async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invitation token and password are required.'
+      });
+    }
+
+    const invitation = dataStore.findInvitationByToken(token);
+    if (!invitation) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invalid invitation token.'
+      });
+    }
+
+    if (invitation.status === 'ACCEPTED') {
+      return res.status(400).json({
+        success: false,
+        message: 'This invitation has already been activated. Please sign in with your credentials.'
+      });
+    }
+
+    if (invitation.status === 'REVOKED' || invitation.status === 'EXPIRED' || new Date() > new Date(invitation.expiresAt)) {
+      return res.status(400).json({
+        success: false,
+        message: 'This invitation is no longer valid or has expired. Please contact your HR administrator.'
+      });
+    }
+
+    // Hash password with bcrypt (min 12 salt rounds)
     const saltRounds = 12;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    const userRole = role === 'admin' ? 'admin' : 'employee';
-
-    // Create user in repository
-    const newUser = dataStore.createUser({
-      fullName,
-      employeeId,
-      email,
-      passwordHash,
-      role: userRole,
-      isVerified: true // Auto-verify for seamless onboarding demo or token verification
+    // Activate user using the trusted role from the invitation record
+    // ANY req.body.role is intentionally ignored and discarded!
+    const user = dataStore.activateUserFromInvitation({
+      invitation,
+      passwordHash
     });
 
-    const { accessToken, refreshToken } = generateTokens(newUser);
+    const { accessToken, refreshToken } = generateTokens(user);
     setAuthCookies(res, accessToken, refreshToken);
 
-    const profile = dataStore.getEmployeeProfile(newUser.employeeId);
+    const profile = dataStore.getEmployeeProfile(user.employeeId);
 
-    res.status(201).json({
+    res.status(200).json({
       success: true,
-      message: 'Registration successful! Welcome to Dayflow.',
+      message: `Account activated successfully! Welcome to Dayflow, ${user.fullName}.`,
       data: {
         user: {
-          id: newUser.id,
-          employeeId: newUser.employeeId,
-          email: newUser.email,
-          fullName: newUser.fullName,
-          role: newUser.role,
-          avatar: newUser.avatar,
-          isVerified: newUser.isVerified
+          id: user.id,
+          employeeId: user.employeeId,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role, // Authoritative role from DB
+          avatar: user.avatar,
+          isVerified: user.isVerified
         },
         profile
       }
@@ -68,6 +145,26 @@ export const register = async (req, res, next) => {
   }
 };
 
+/**
+ * Public registration endpoint handler.
+ * Rejects unrestricted public registration and instructs user to use HR invitation activation.
+ */
+export const register = async (req, res, next) => {
+  const { token } = req.body;
+  if (token) {
+    return activateAccount(req, res, next);
+  }
+
+  return res.status(403).json({
+    success: false,
+    message: 'Public self-registration is disabled for corporate security. Account activation requires a valid invitation link sent by HR.'
+  });
+};
+
+/**
+ * Authenticates user via email and password.
+ * Reads trusted role from database, issues HTTP-only JWT cookies.
+ */
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -87,6 +184,15 @@ export const login = async (req, res, next) => {
         message: 'Invalid email or password. Please check your credentials.'
       });
     }
+
+    if (user.status === 'DEACTIVATED' || user.status === 'SUSPENDED') {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been deactivated. Please contact your HR administrator.'
+      });
+    }
+
+    user.lastLoginAt = new Date().toISOString();
 
     const { accessToken, refreshToken } = generateTokens(user);
     setAuthCookies(res, accessToken, refreshToken);

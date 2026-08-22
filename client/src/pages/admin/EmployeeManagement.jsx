@@ -2,16 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Users,
-  UserPlus,
+  Plus,
   Search,
   Filter,
-  Eye,
-  Edit2,
-  Power,
   CheckCircle,
-  Building,
+  XCircle,
+  MoreHorizontal,
   Mail,
-  Phone
+  Phone,
+  Shield,
+  Briefcase,
+  KeyRound,
+  Copy,
+  Check,
+  RotateCcw,
+  Trash2,
+  Lock,
+  Sparkles
 } from 'lucide-react';
 import { adminService } from '../../services/adminService';
 import { DataTable } from '../../components/common/DataTable';
@@ -23,29 +30,44 @@ import { useToast } from '../../context/ToastContext';
 export const EmployeeManagement = () => {
   const toast = useToast();
 
+  const [activeTab, setActiveTab] = useState('employees'); // 'employees' | 'invitations'
   const [employees, setEmployees] = useState([]);
+  const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
+  // Add Employee Modal State
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
-    employeeId: '',
+    employeeId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
     email: '',
+    phone: '',
+    role: 'employee', // HR/Admin assigns role here
     department: 'Engineering',
-    title: 'Senior Software Engineer',
+    title: 'Frontend Engineer',
     designation: 'Senior IC',
     workType: 'Full-Time (Remote)',
-    basicSalary: 6500,
-    role: 'employee'
+    basicSalary: 6500
   });
+
+  // Generated Invitation Success Dialog
+  const [generatedInvite, setGeneratedInvite] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const res = await adminService.getEmployees();
-      if (res.success && res.data) {
-        setEmployees(res.data.employees || []);
+      const [empRes, invRes] = await Promise.all([
+        adminService.getEmployees(),
+        adminService.getInvitations()
+      ]);
+
+      if (empRes.success && empRes.data) {
+        setEmployees(empRes.data.employees || []);
+      }
+      if (invRes.success && invRes.data) {
+        setInvitations(invRes.data.invitations || []);
       }
     } catch (err) {
       toast.error('Failed to load employee directory.');
@@ -61,91 +83,126 @@ export const EmployeeManagement = () => {
   const handleCreateEmployee = async (e) => {
     e.preventDefault();
     try {
-      setSubmitting(true);
+      setCreating(true);
       const res = await adminService.createEmployee(formData);
-      if (res.success) {
-        toast.success(res.message || 'Employee created successfully.');
+      if (res.success && res.data) {
+        toast.success(res.message || 'Employee created & invitation generated.');
         setIsAddModalOpen(false);
+        setGeneratedInvite(res.data);
+        fetchEmployees();
+        // Reset form
         setFormData({
           fullName: '',
-          employeeId: '',
+          employeeId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
           email: '',
+          phone: '',
+          role: 'employee',
           department: 'Engineering',
-          title: 'Senior Software Engineer',
+          title: 'Frontend Engineer',
           designation: 'Senior IC',
           workType: 'Full-Time (Remote)',
-          basicSalary: 6500,
-          role: 'employee'
+          basicSalary: 6500
         });
-        fetchEmployees();
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to create employee.');
     } finally {
-      setSubmitting(false);
+      setCreating(false);
     }
   };
 
-  const handleToggleStatus = async (employeeId, name, currentStatus) => {
-    const action = currentStatus === 'Active' ? 'deactivate' : 'reactivate';
-    if (!window.confirm(`Are you sure you want to ${action} ${name}?`)) return;
-
+  const handleToggleStatus = async (empId, currentStatus) => {
     try {
-      const res = await adminService.toggleEmployeeStatus(employeeId);
+      const res = await adminService.toggleEmployeeStatus(empId);
       if (res.success) {
         toast.success(res.message);
         fetchEmployees();
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update employee status.');
+      toast.error('Failed to update employee status.');
     }
   };
 
-  const columns = [
+  const handleResendInvitation = async (invId) => {
+    try {
+      const res = await adminService.resendInvitation(invId);
+      if (res.success && res.data) {
+        toast.success('New invitation token generated!');
+        setGeneratedInvite(res.data);
+        fetchEmployees();
+      }
+    } catch (err) {
+      toast.error('Failed to resend invitation.');
+    }
+  };
+
+  const handleRevokeInvitation = async (invId) => {
+    if (!window.confirm('Are you sure you want to revoke this invitation?')) return;
+    try {
+      const res = await adminService.revokeInvitation(invId);
+      if (res.success) {
+        toast.success('Invitation revoked.');
+        fetchEmployees();
+      }
+    } catch (err) {
+      toast.error('Failed to revoke invitation.');
+    }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    toast.success('Activation link copied to clipboard!');
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  // Employees Table Columns
+  const employeeColumns = [
     {
-      header: 'Employee Name & Email',
+      header: 'Employee Details',
       key: 'fullName',
       render: (val, row) => (
         <div className="flex items-center gap-3">
           <img
-            src={
-              row.avatar ||
-              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop'
-            }
+            src={row.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop'}
             alt={val}
-            className="w-8 h-8 rounded-full object-cover border border-teal-500/40"
+            className="w-9 h-9 rounded-full object-cover border border-dark-600"
           />
           <div>
             <Link
-              to={`/admin/employees/${row.employeeId || row.id}`}
-              className="font-bold text-slate-100 hover:text-teal-400 block transition-colors"
+              to={`/admin/employees/${row.employeeId}`}
+              className="font-bold text-slate-100 hover:text-teal-400 transition-colors block"
             >
               {val}
             </Link>
-            <span className="text-[11px] text-dark-300">{row.email}</span>
+            <span className="text-[11px] text-dark-300 font-mono">ID: {row.employeeId}</span>
           </div>
         </div>
       )
     },
     {
-      header: 'Employee ID',
-      key: 'employeeId',
-      render: (val) => <span className="font-mono text-xs text-dark-300 font-semibold">{val}</span>
-    },
-    {
-      header: 'Department',
+      header: 'Department & Role',
       key: 'jobDetails',
-      render: (val) => <span className="text-slate-200">{val?.department || 'General'}</span>
-    },
-    {
-      header: 'Designation / Role',
-      key: 'jobDetails',
-      render: (val) => <span className="text-dark-300 text-xs">{val?.title || 'Staff'}</span>
+      render: (val) => (
+        <div>
+          <span className="text-slate-200 block text-xs">{val?.department || 'General'}</span>
+          <span className="text-[11px] text-dark-400">{val?.title || 'Staff'}</span>
+        </div>
+      )
     },
     {
       header: 'Work Mode',
-      key: 'jobDetails',
-      render: (val) => <StatusBadge status={val?.workType || 'Full-Time'} />
+      key: 'jobDetails.workType',
+      render: (_, row) => (
+        <span className="text-xs text-dark-300">{row.jobDetails?.workType || 'Full-Time'}</span>
+      )
+    },
+    {
+      header: 'Work Email',
+      key: 'email',
+      render: (val) => (
+        <span className="text-xs font-mono text-dark-300">{val}</span>
+      )
     },
     {
       header: 'Status',
@@ -158,23 +215,102 @@ export const EmployeeManagement = () => {
       render: (_, row) => (
         <div className="flex items-center gap-2">
           <Link
-            to={`/admin/employees/${row.employeeId || row.id}`}
-            className="p-1.5 rounded-lg bg-dark-750 hover:bg-dark-700 text-teal-400 border border-dark-600 transition-colors"
-            title="Edit Full Profile"
+            to={`/admin/employees/${row.employeeId}`}
+            className="px-2.5 py-1 rounded-lg bg-dark-750 hover:bg-dark-700 text-teal-400 border border-dark-600 text-xs font-semibold"
           >
-            <Edit2 className="w-3.5 h-3.5" />
+            Edit Profile
           </Link>
           <button
-            onClick={() => handleToggleStatus(row.employeeId || row.id, row.fullName, row.status)}
-            className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+            onClick={() => handleToggleStatus(row.employeeId, row.status)}
+            className={`p-1.5 rounded-lg border text-xs cursor-pointer transition-colors ${
               row.status === 'Active'
-                ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'
-                : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/20'
+                : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20'
             }`}
-            title={row.status === 'Active' ? 'Deactivate Employee' : 'Reactivate Employee'}
+            title={row.status === 'Active' ? 'Deactivate Account' : 'Activate Account'}
           >
-            <Power className="w-3.5 h-3.5" />
+            {row.status === 'Active' ? <XCircle className="w-3.5 h-3.5" /> : <CheckCircle className="w-3.5 h-3.5" />}
           </button>
+        </div>
+      )
+    }
+  ];
+
+  // Invitations Table Columns
+  const invitationColumns = [
+    {
+      header: 'Target Employee',
+      key: 'fullName',
+      render: (val, row) => (
+        <div>
+          <span className="font-bold text-slate-100 block">{val}</span>
+          <span className="text-[10px] text-dark-300 font-mono">ID: {row.employeeId}</span>
+        </div>
+      )
+    },
+    {
+      header: 'Invited Email',
+      key: 'email',
+      render: (val) => <span className="font-mono text-xs text-slate-200">{val}</span>
+    },
+    {
+      header: 'Assigned Role',
+      key: 'role',
+      render: (val) => (
+        <span className="px-2 py-0.5 rounded-md bg-dark-750 border border-dark-600 text-teal-300 font-mono text-[11px] uppercase font-bold flex items-center gap-1 w-fit">
+          <Lock className="w-3 h-3 text-amber-400" />
+          {val}
+        </span>
+      )
+    },
+    {
+      header: 'Status',
+      key: 'status',
+      render: (val) => <StatusBadge status={val} />
+    },
+    {
+      header: 'Expires At',
+      key: 'expiresAt',
+      render: (val) => (
+        <span className="text-dark-400 text-xs font-mono">
+          {new Date(val).toLocaleDateString()}
+        </span>
+      )
+    },
+    {
+      header: 'Actions',
+      key: 'id',
+      render: (_, row) => (
+        <div className="flex items-center gap-2">
+          {row.status === 'INVITED' && (
+            <>
+              <button
+                onClick={() => {
+                  const clientUrl = window.location.origin;
+                  copyToClipboard(`${clientUrl}/activate?token=${row.token}`);
+                }}
+                className="px-2.5 py-1 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                title="Copy Activation Link"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>Copy Link</span>
+              </button>
+              <button
+                onClick={() => handleResendInvitation(row.id)}
+                className="p-1.5 rounded-lg bg-dark-750 hover:bg-dark-700 text-slate-300 border border-dark-600 cursor-pointer"
+                title="Refresh & Resend Invitation"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => handleRevokeInvitation(row.id)}
+                className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 cursor-pointer"
+                title="Revoke Invitation"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
         </div>
       )
     }
@@ -182,38 +318,82 @@ export const EmployeeManagement = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* 1. Header */}
-      <div className="card-surface p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border-dark-700">
+      {/* 1. Header with Tab Switches & Add Button */}
+      <div className="card-surface p-6 border-dark-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-100 tracking-tight">
-            Employee Directory & Workforce Management
+            Employee Directory & Onboarding
           </h1>
           <p className="text-xs text-dark-300 mt-1">
-            Search, manage contracts, job grades, compensation structures, and statuses
+            Manage corporate staff records, assign authoritative roles, and dispatch onboarding invitations
           </p>
         </div>
 
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="btn-primary text-xs font-semibold flex items-center gap-2"
-        >
-          <UserPlus className="w-4 h-4" /> Add New Employee
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Tabs */}
+          <div className="flex items-center bg-dark-850 p-1 rounded-xl border border-dark-700">
+            <button
+              onClick={() => setActiveTab('employees')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'employees'
+                  ? 'bg-teal-500 text-white shadow-glow-teal-sm'
+                  : 'text-dark-300 hover:text-slate-200'
+              }`}
+            >
+              All Employees ({employees.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('invitations')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'invitations'
+                  ? 'bg-teal-500 text-white shadow-glow-teal-sm'
+                  : 'text-dark-300 hover:text-slate-200'
+              }`}
+            >
+              Invitations ({invitations.length})
+            </button>
+          </div>
+
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="btn-primary text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-glow-teal-sm"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add New Employee</span>
+          </button>
+        </div>
       </div>
 
-      {/* 2. Employee Data Table */}
+      {/* 2. Main Tables */}
       {loading ? (
-        <SkeletonTable rows={8} cols={7} />
+        <SkeletonTable rows={8} cols={6} />
+      ) : activeTab === 'employees' ? (
+        <DataTable
+          title="Active Workforce Register"
+          subtitle="Showing all registered organization personnel"
+          columns={employeeColumns}
+          data={employees}
+          filterKey="department"
+          filterOptions={[
+            { label: 'Engineering', value: 'Engineering' },
+            { label: 'Design & UX', value: 'Design & UX' },
+            { label: 'Product', value: 'Product' },
+            { label: 'Human Resources', value: 'Human Resources' },
+            { label: 'Infrastructure', value: 'Infrastructure' }
+          ]}
+          pageSize={10}
+        />
       ) : (
         <DataTable
-          title="All Company Employees"
-          subtitle="Showing active, hybrid, and remote staff records"
-          columns={columns}
-          data={employees}
+          title="Invitation & Onboarding Ledger"
+          subtitle="Cryptographic single-use activation invitations generated by HR"
+          columns={invitationColumns}
+          data={invitations}
           filterKey="status"
           filterOptions={[
-            { label: 'Active', value: 'Active' },
-            { label: 'Deactivated', value: 'Deactivated' }
+            { label: 'Invited / Pending', value: 'INVITED' },
+            { label: 'Accepted', value: 'ACCEPTED' },
+            { label: 'Expired', value: 'EXPIRED' }
           ]}
           pageSize={10}
         />
@@ -223,8 +403,8 @@ export const EmployeeManagement = () => {
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        title="Onboard New Employee"
-        subtitle="Create workspace account, configure job role, and initialize salary structure"
+        title="Add New Employee & Generate Invitation"
+        subtitle="The organization assigns the employee role; an invitation token will be generated."
         footer={
           <>
             <button
@@ -237,61 +417,124 @@ export const EmployeeManagement = () => {
             <button
               type="button"
               onClick={handleCreateEmployee}
-              disabled={submitting}
+              disabled={creating}
               className="btn-primary text-xs font-semibold flex items-center gap-1.5"
             >
-              <UserPlus className="w-4 h-4" />
-              {submitting ? 'Creating Profile...' : 'Save & Onboard'}
+              <KeyRound className="w-4 h-4" />
+              <span>{creating ? 'Generating Invitation...' : 'Create Employee & Send Invitation'}</span>
             </button>
           </>
         }
       >
         <form onSubmit={handleCreateEmployee} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                Full Name
+                Full Name *
               </label>
               <input
                 type="text"
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                placeholder="e.g. Arun Kumar"
                 className="input-field"
-                placeholder="e.g. Rachel Adams"
                 required
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                Employee ID
+                Employee ID (System Auto-assigned)
               </label>
               <input
                 type="text"
                 value={formData.employeeId}
                 onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-                className="input-field"
-                placeholder="EMP-1300"
+                className="input-field font-mono"
                 required
               />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-              Work Email Address
-            </label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="input-field"
-              placeholder="rachel.adams@dayflow.com"
-              required
-            />
-          </div>
+            <div>
+              <label className="block text-xs font-semibold text-dark-300 mb-1.5">
+                Work Email Address *
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="arun.kumar@dayflow.com"
+                className="input-field"
+                required
+              />
+            </div>
 
-          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-dark-300 mb-1.5">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="+1 (555) 000-0000"
+                className="input-field"
+              />
+            </div>
+
+            {/* AUTHORITATIVE ROLE SELECTION (HR/ADMIN ASSIGNMENT ONLY) */}
+            <div className="sm:col-span-2 p-3.5 rounded-xl bg-dark-850 border border-teal-500/30">
+              <label className="block text-xs font-bold text-teal-300 mb-1 flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5" /> Assigned Account Role (Organization Controlled)
+              </label>
+              <p className="text-[11px] text-dark-400 mb-2">
+                This role is cryptographically tied to the invitation. The employee cannot change this role during activation.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <label
+                  className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all ${
+                    formData.role === 'employee'
+                      ? 'bg-teal-500/15 border-teal-500 text-teal-200 shadow-glow-teal-sm'
+                      : 'bg-dark-750 border-dark-600 text-dark-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="role"
+                    value="employee"
+                    checked={formData.role === 'employee'}
+                    onChange={() => setFormData({ ...formData, role: 'employee' })}
+                    className="accent-teal-500"
+                  />
+                  <div>
+                    <span className="font-bold text-xs block text-slate-100">Employee Role</span>
+                    <span className="text-[10px] text-dark-400">Standard employee portal access</span>
+                  </div>
+                </label>
+
+                <label
+                  className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all ${
+                    formData.role === 'admin'
+                      ? 'bg-amber-500/15 border-amber-500 text-amber-200'
+                      : 'bg-dark-750 border-dark-600 text-dark-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="role"
+                    value="admin"
+                    checked={formData.role === 'admin'}
+                    onChange={() => setFormData({ ...formData, role: 'admin' })}
+                    className="accent-amber-500"
+                  />
+                  <div>
+                    <span className="font-bold text-xs block text-slate-100">HR / Admin Role</span>
+                    <span className="text-[10px] text-dark-400">Full HR management access</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-semibold text-dark-300 mb-1.5">
                 Department
@@ -306,7 +549,6 @@ export const EmployeeManagement = () => {
                 <option value="Product">Product</option>
                 <option value="Human Resources">Human Resources</option>
                 <option value="Infrastructure">Infrastructure</option>
-                <option value="Finance & Ops">Finance & Ops</option>
               </select>
             </div>
 
@@ -319,16 +561,13 @@ export const EmployeeManagement = () => {
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 className="input-field"
-                placeholder="e.g. Backend Lead"
                 required
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                Work Type
+                Work Mode
               </label>
               <select
                 value={formData.workType}
@@ -344,20 +583,79 @@ export const EmployeeManagement = () => {
 
             <div>
               <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                Monthly Base Salary ($)
+                Base Monthly Salary ($)
               </label>
               <input
                 type="number"
                 value={formData.basicSalary}
                 onChange={(e) => setFormData({ ...formData, basicSalary: Number(e.target.value) })}
                 className="input-field"
-                min="1000"
                 required
               />
             </div>
           </div>
         </form>
       </Modal>
+
+      {/* 4. Generated Invitation Success Modal */}
+      {generatedInvite && (
+        <Modal
+          isOpen={true}
+          onClose={() => setGeneratedInvite(null)}
+          title="Invitation Generated Successfully"
+          subtitle="Share this secure single-use activation link with the employee"
+          footer={
+            <button
+              onClick={() => setGeneratedInvite(null)}
+              className="btn-primary text-xs font-semibold w-full"
+            >
+              Done & Close
+            </button>
+          }
+        >
+          <div className="space-y-4">
+            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <div className="text-xs">
+                <span className="font-bold text-emerald-300 block">
+                  Employee Record Created & Role Locked
+                </span>
+                <span className="text-dark-300">
+                  Role: <strong className="text-teal-300 uppercase">{generatedInvite.invitation?.role || generatedInvite.employee?.jobDetails?.department}</strong>.
+                  The employee will be required to set their password upon opening the link.
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-dark-300 mb-1.5">
+                Activation Link (Valid for 7 Days)
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={generatedInvite.activationUrl || `${window.location.origin}/activate?token=${generatedInvite.invitation?.token}`}
+                  className="input-field font-mono text-xs bg-dark-900 select-all"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    copyToClipboard(
+                      generatedInvite.activationUrl ||
+                        `${window.location.origin}/activate?token=${generatedInvite.invitation?.token}`
+                    )
+                  }
+                  className="btn-primary text-xs font-semibold px-4 py-2.5 flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                >
+                  {copied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+                  <span>{copied ? 'Copied!' : 'Copy Link'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

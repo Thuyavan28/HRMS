@@ -1,885 +1,26 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import { query } from '../config/db.js';
 
 // Pre-hashed passwords using bcrypt (12 rounds)
-// Admin@1234 => $2a$12$Nq9v7e5kRzR1g0yG9PjO.. (generated below safely on init or synchronized)
 const DEFAULT_ADMIN_PASS_HASH = bcrypt.hashSync('Admin@1234', 12);
 const DEFAULT_EMP_PASS_HASH = bcrypt.hashSync('Employee@1234', 12);
 
-class InMemoryDataStore {
+class DataStoreService {
   constructor() {
-    this.init();
+    this.initLocalFallback();
   }
 
-  init() {
-    // 1. USERS COLLECTION
-    this.users = [
-      {
-        id: 'usr-admin-01',
-        employeeId: 'EMP-001',
-        email: 'admin@dayflow.com',
-        fullName: 'Eleanor Vance',
-        passwordHash: DEFAULT_ADMIN_PASS_HASH,
-        role: 'admin',
-        isVerified: true,
-        avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=256&auto=format&fit=crop',
-        createdAt: '2023-01-01T08:00:00.000Z'
-      },
-      {
-        id: 'usr-emp-01',
-        employeeId: 'EMP-1042',
-        email: 'alex.morgan@dayflow.com',
-        fullName: 'Alex Morgan',
-        passwordHash: DEFAULT_EMP_PASS_HASH,
-        role: 'employee',
-        isVerified: true,
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop',
-        createdAt: '2023-03-15T09:00:00.000Z'
-      },
-      {
-        id: 'usr-emp-02',
-        employeeId: 'EMP-1088',
-        email: 'sarah.chen@dayflow.com',
-        fullName: 'Sarah Chen',
-        passwordHash: DEFAULT_EMP_PASS_HASH,
-        role: 'employee',
-        isVerified: true,
-        avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=256&auto=format&fit=crop',
-        createdAt: '2023-05-10T09:00:00.000Z'
-      },
-      {
-        id: 'usr-emp-03',
-        employeeId: 'EMP-1102',
-        email: 'david.kim@dayflow.com',
-        fullName: 'David Kim',
-        passwordHash: DEFAULT_EMP_PASS_HASH,
-        role: 'employee',
-        isVerified: true,
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=256&auto=format&fit=crop',
-        createdAt: '2023-06-01T09:00:00.000Z'
-      },
-      {
-        id: 'usr-emp-04',
-        employeeId: 'EMP-1145',
-        email: 'maya.patel@dayflow.com',
-        fullName: 'Maya Patel',
-        passwordHash: DEFAULT_EMP_PASS_HASH,
-        role: 'employee',
-        isVerified: true,
-        avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=256&auto=format&fit=crop',
-        createdAt: '2023-08-12T09:00:00.000Z'
-      },
-      {
-        id: 'usr-emp-05',
-        employeeId: 'EMP-1190',
-        email: 'james.wilson@dayflow.com',
-        fullName: 'James Wilson',
-        passwordHash: DEFAULT_EMP_PASS_HASH,
-        role: 'employee',
-        isVerified: true,
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=256&auto=format&fit=crop',
-        createdAt: '2023-11-20T09:00:00.000Z'
-      },
-      {
-        id: 'usr-emp-06',
-        employeeId: 'EMP-1205',
-        email: 'elena.rostova@dayflow.com',
-        fullName: 'Elena Rostova',
-        passwordHash: DEFAULT_EMP_PASS_HASH,
-        role: 'employee',
-        isVerified: true,
-        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=256&auto=format&fit=crop',
-        createdAt: '2024-01-08T09:00:00.000Z'
-      }
-    ];
-
-    // 2. EMPLOYEE PROFILES (Rich Enterprise Details)
-    this.employees = [
-      {
-        id: 'emp-001',
-        employeeId: 'EMP-001',
-        userId: 'usr-admin-01',
-        fullName: 'Eleanor Vance',
-        email: 'admin@dayflow.com',
-        phone: '+1 (555) 234-8901',
-        address: '742 Evergreen Terrace, Suite 400, San Francisco, CA',
-        emergencyContact: 'Robert Vance (+1 555-890-1234)',
-        avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=256&auto=format&fit=crop',
-        status: 'Active',
-        jobDetails: {
-          title: 'VP of Human Resources & People Ops',
-          department: 'Executive / HR',
-          designation: 'Vice President',
-          workType: 'Full-Time (Hybrid)',
-          joinDate: '2023-01-01',
-          reportingManager: 'Board of Directors',
-          location: 'San Francisco HQ',
-          workShift: '09:00 AM - 06:00 PM (PST)'
-        },
-        salaryStructure: {
-          currency: 'USD',
-          basic: 12000,
-          hra: 4000,
-          transport: 1000,
-          medical: 800,
-          gross: 17800,
-          taxDeduction: 3200,
-          pfDeduction: 1400,
-          netSalary: 13200
-        },
-        leaveBalances: {
-          annual: 24,
-          monthly: 2,
-          daily: 6,
-          hourly: 24,
-          sick: 12
-        },
-        documents: [
-          { name: 'Executive_Offer_Letter.pdf', size: '1.8 MB', uploadedAt: '2023-01-01', type: 'PDF' },
-          { name: 'Non_Disclosure_Agreement.pdf', size: '940 KB', uploadedAt: '2023-01-02', type: 'PDF' },
-          { name: 'Tax_W4_Form_2025.pdf', size: '420 KB', uploadedAt: '2025-01-10', type: 'PDF' }
-        ]
-      },
-      {
-        id: 'emp-1042',
-        employeeId: 'EMP-1042',
-        userId: 'usr-emp-01',
-        fullName: 'Alex Morgan',
-        email: 'alex.morgan@dayflow.com',
-        phone: '+1 (555) 432-9081',
-        address: '128 Mission Bay Blvd, Apt 5B, San Francisco, CA 94158',
-        emergencyContact: 'Clara Morgan (Spouse) - +1 555-678-9012',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop',
-        status: 'Active',
-        jobDetails: {
-          title: 'Senior Product Designer',
-          department: 'Design & UX',
-          designation: 'Senior IC-4',
-          workType: 'Full-Time (Remote)',
-          joinDate: '2023-03-15',
-          reportingManager: 'Eleanor Vance',
-          location: 'Remote - West Coast',
-          workShift: '09:00 AM - 05:30 PM (PST)'
-        },
-        salaryStructure: {
-          currency: 'USD',
-          basic: 6500,
-          hra: 2200,
-          transport: 600,
-          medical: 500,
-          gross: 9800,
-          taxDeduction: 1470,
-          pfDeduction: 784,
-          netSalary: 7546
-        },
-        leaveBalances: {
-          annual: 18,
-          monthly: 2,
-          daily: 5,
-          hourly: 16,
-          sick: 10
-        },
-        documents: [
-          { name: 'Employment_Contract_Signed.pdf', size: '2.4 MB', uploadedAt: '2023-03-15', type: 'PDF' },
-          { name: 'Identity_Verification_Passport.pdf', size: '1.2 MB', uploadedAt: '2023-03-16', type: 'PDF' },
-          { name: 'Health_Insurance_Enrollment.pdf', size: '680 KB', uploadedAt: '2023-04-01', type: 'PDF' }
-        ]
-      },
-      {
-        id: 'emp-1088',
-        employeeId: 'EMP-1088',
-        userId: 'usr-emp-02',
-        fullName: 'Sarah Chen',
-        email: 'sarah.chen@dayflow.com',
-        phone: '+1 (555) 789-2341',
-        address: '450 Fremont Street, Seattle, WA',
-        emergencyContact: 'Michael Chen - +1 555-321-4567',
-        avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=256&auto=format&fit=crop',
-        status: 'Active',
-        jobDetails: {
-          title: 'Lead Frontend Engineer',
-          department: 'Engineering',
-          designation: 'Staff Engineer (IC-5)',
-          workType: 'Full-Time (Hybrid)',
-          joinDate: '2023-05-10',
-          reportingManager: 'Marcus Brody',
-          location: 'Seattle Hub',
-          workShift: '09:30 AM - 06:00 PM (PST)'
-        },
-        salaryStructure: {
-          currency: 'USD',
-          basic: 8200,
-          hra: 2800,
-          transport: 700,
-          medical: 600,
-          gross: 12300,
-          taxDeduction: 1980,
-          pfDeduction: 980,
-          netSalary: 9340
-        },
-        leaveBalances: {
-          annual: 15,
-          monthly: 2,
-          daily: 4,
-          hourly: 12,
-          sick: 8
-        },
-        documents: [
-          { name: 'Offer_Letter_Signed.pdf', size: '1.9 MB', uploadedAt: '2023-05-10', type: 'PDF' }
-        ]
-      },
-      {
-        id: 'emp-1102',
-        employeeId: 'EMP-1102',
-        userId: 'usr-emp-03',
-        fullName: 'David Kim',
-        email: 'david.kim@dayflow.com',
-        phone: '+1 (555) 890-5678',
-        address: '202 Lakeview Ave, Austin, TX',
-        emergencyContact: 'Hannah Kim - +1 555-890-9988',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=256&auto=format&fit=crop',
-        status: 'Active',
-        jobDetails: {
-          title: 'DevOps & Cloud Architect',
-          department: 'Infrastructure',
-          designation: 'Senior Architect',
-          workType: 'Full-Time (Remote)',
-          joinDate: '2023-06-01',
-          reportingManager: 'Marcus Brody',
-          location: 'Austin Hub',
-          workShift: '08:30 AM - 05:00 PM (CST)'
-        },
-        salaryStructure: {
-          currency: 'USD',
-          basic: 7800,
-          hra: 2500,
-          transport: 650,
-          medical: 550,
-          gross: 11500,
-          taxDeduction: 1750,
-          pfDeduction: 920,
-          netSalary: 8830
-        },
-        leaveBalances: {
-          annual: 20,
-          monthly: 2,
-          daily: 6,
-          hourly: 20,
-          sick: 11
-        },
-        documents: [
-          { name: 'AWS_Security_Certification.pdf', size: '1.1 MB', uploadedAt: '2023-06-05', type: 'PDF' }
-        ]
-      },
-      {
-        id: 'emp-1145',
-        employeeId: 'EMP-1145',
-        userId: 'usr-emp-04',
-        fullName: 'Maya Patel',
-        email: 'maya.patel@dayflow.com',
-        phone: '+1 (555) 678-1234',
-        address: '900 Broadway, New York, NY',
-        emergencyContact: 'Dev Patel - +1 555-678-0099',
-        avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=256&auto=format&fit=crop',
-        status: 'Active',
-        jobDetails: {
-          title: 'Principal Product Manager',
-          department: 'Product',
-          designation: 'Principal PM',
-          workType: 'Full-Time (On-site)',
-          joinDate: '2023-08-12',
-          reportingManager: 'Eleanor Vance',
-          location: 'New York Office',
-          workShift: '09:00 AM - 06:00 PM (EST)'
-        },
-        salaryStructure: {
-          currency: 'USD',
-          basic: 8500,
-          hra: 3000,
-          transport: 800,
-          medical: 600,
-          gross: 12900,
-          taxDeduction: 2100,
-          pfDeduction: 1030,
-          netSalary: 9770
-        },
-        leaveBalances: {
-          annual: 16,
-          monthly: 2,
-          daily: 5,
-          hourly: 14,
-          sick: 9
-        },
-        documents: [
-          { name: 'NDA_Signed_2023.pdf', size: '820 KB', uploadedAt: '2023-08-12', type: 'PDF' }
-        ]
-      },
-      {
-        id: 'emp-1190',
-        employeeId: 'EMP-1190',
-        userId: 'usr-emp-05',
-        fullName: 'James Wilson',
-        email: 'james.wilson@dayflow.com',
-        phone: '+1 (555) 456-7890',
-        address: '1504 Pine Street, Chicago, IL',
-        emergencyContact: 'Jessica Wilson - +1 555-456-1122',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=256&auto=format&fit=crop',
-        status: 'Active',
-        jobDetails: {
-          title: 'QA Automation Lead',
-          department: 'Engineering',
-          designation: 'Lead QA Engineer',
-          workType: 'Full-Time (Hybrid)',
-          joinDate: '2023-11-20',
-          reportingManager: 'Sarah Chen',
-          location: 'Chicago Hub',
-          workShift: '09:00 AM - 05:30 PM (CST)'
-        },
-        salaryStructure: {
-          currency: 'USD',
-          basic: 6200,
-          hra: 2100,
-          transport: 550,
-          medical: 500,
-          gross: 9350,
-          taxDeduction: 1390,
-          pfDeduction: 748,
-          netSalary: 7212
-        },
-        leaveBalances: {
-          annual: 14,
-          monthly: 2,
-          daily: 4,
-          hourly: 10,
-          sick: 8
-        },
-        documents: [
-          { name: 'QA_Lead_Agreement.pdf', size: '1.5 MB', uploadedAt: '2023-11-20', type: 'PDF' }
-        ]
-      },
-      {
-        id: 'emp-1205',
-        employeeId: 'EMP-1205',
-        userId: 'usr-emp-06',
-        fullName: 'Elena Rostova',
-        email: 'elena.rostova@dayflow.com',
-        phone: '+1 (555) 345-6789',
-        address: '320 Main St, Boston, MA',
-        emergencyContact: 'Dmitri Rostov - +1 555-345-9988',
-        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=256&auto=format&fit=crop',
-        status: 'Active',
-        jobDetails: {
-          title: 'Talent Acquisition Lead',
-          department: 'Human Resources',
-          designation: 'Senior Recruiter',
-          workType: 'Full-Time (Remote)',
-          joinDate: '2024-01-08',
-          reportingManager: 'Eleanor Vance',
-          location: 'Boston Hub',
-          workShift: '09:00 AM - 05:30 PM (EST)'
-        },
-        salaryStructure: {
-          currency: 'USD',
-          basic: 5800,
-          hra: 1900,
-          transport: 500,
-          medical: 500,
-          gross: 8700,
-          taxDeduction: 1250,
-          pfDeduction: 696,
-          netSalary: 6754
-        },
-        leaveBalances: {
-          annual: 17,
-          monthly: 2,
-          daily: 5,
-          hourly: 16,
-          sick: 10
-        },
-        documents: [
-          { name: 'Talent_Acquisition_Contract.pdf', size: '1.4 MB', uploadedAt: '2024-01-08', type: 'PDF' }
-        ]
-      }
-    ];
-
-    // 3. ATTENDANCE RECORDS (Past 30 days + dynamic punch states)
+  initLocalFallback() {
+    // Initial local cache structures
+    this.users = [];
+    this.invitations = [];
+    this.employees = [];
     this.attendance = [];
-    const today = new Date();
-    const employeeIds = ['EMP-001', 'EMP-1042', 'EMP-1088', 'EMP-1102', 'EMP-1145', 'EMP-1190', 'EMP-1205'];
-
-    for (let i = 25; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      const dayOfWeek = d.getDay();
-      
-      // Skip weekends
-      if (dayOfWeek === 0 || dayOfWeek === 6) continue;
-
-      const dateStr = d.toISOString().split('T')[0];
-
-      employeeIds.forEach((empId) => {
-        const isToday = i === 0;
-        let checkIn = '09:00 AM';
-        let checkOut = '05:30 PM';
-        let workHours = '8.5 hrs';
-        let status = 'Present';
-
-        if (isToday) {
-          if (empId === 'EMP-1042') {
-            // Alex Morgan checked in today at 08:58 AM, not yet checked out
-            checkIn = '08:58 AM';
-            checkOut = null;
-            workHours = 'In Progress';
-            status = 'Present';
-          } else if (empId === 'EMP-1088') {
-            checkIn = '09:18 AM';
-            checkOut = null;
-            workHours = 'In Progress';
-            status = 'Late';
-          } else {
-            checkIn = '09:02 AM';
-            checkOut = null;
-            workHours = 'In Progress';
-            status = 'Present';
-          }
-        } else {
-          // Historical variance
-          if (i % 7 === 2) {
-            checkIn = '09:22 AM';
-            status = 'Late';
-            workHours = '8.1 hrs';
-          } else if (i % 11 === 0 && empId === 'EMP-1102') {
-            checkIn = null;
-            checkOut = null;
-            status = 'Absent';
-            workHours = '0.0 hrs';
-          } else {
-            checkIn = '08:55 AM';
-            status = 'Present';
-            workHours = '8.6 hrs';
-          }
-        }
-
-        this.attendance.push({
-          id: `att-${empId}-${dateStr}`,
-          employeeId: empId,
-          date: dateStr,
-          checkIn,
-          checkOut,
-          workHours,
-          status,
-          device: 'Web App Portal',
-          location: 'Standard IP / VPN'
-        });
-      });
-    }
-
-    // 4. LEAVE REQUESTS
-    this.leaves = [
-      {
-        id: 'lv-901',
-        employeeId: 'EMP-1042',
-        employeeName: 'Alex Morgan',
-        department: 'Design & UX',
-        leaveType: 'Paid',
-        fromDate: '2026-09-10',
-        toDate: '2026-09-12',
-        duration: 3,
-        remarks: 'Annual family vacation trip to Yosemite.',
-        status: 'Approved',
-        adminComment: 'Approved. Please coordinate with design team handoffs.',
-        appliedAt: '2026-08-15T10:30:00.000Z',
-        reviewedAt: '2026-08-16T14:20:00.000Z',
-        reviewedBy: 'Eleanor Vance'
-      },
-      {
-        id: 'lv-902',
-        employeeId: 'EMP-1042',
-        employeeName: 'Alex Morgan',
-        department: 'Design & UX',
-        leaveType: 'Sick',
-        fromDate: '2026-08-04',
-        toDate: '2026-08-04',
-        duration: 1,
-        remarks: 'Doctor appointment and routine allergy checkup.',
-        status: 'Approved',
-        adminComment: 'Approved. Rest well!',
-        appliedAt: '2026-08-03T16:00:00.000Z',
-        reviewedAt: '2026-08-03T18:00:00.000Z',
-        reviewedBy: 'Eleanor Vance'
-      },
-      {
-        id: 'lv-903',
-        employeeId: 'EMP-1042',
-        employeeName: 'Alex Morgan',
-        department: 'Design & UX',
-        leaveType: 'Paid',
-        fromDate: '2026-10-01',
-        toDate: '2026-10-02',
-        duration: 2,
-        remarks: 'Attending Figma Config design symposium.',
-        status: 'Pending',
-        adminComment: null,
-        appliedAt: '2026-08-20T11:15:00.000Z',
-        reviewedAt: null,
-        reviewedBy: null
-      },
-      {
-        id: 'lv-904',
-        employeeId: 'EMP-1088',
-        employeeName: 'Sarah Chen',
-        department: 'Engineering',
-        leaveType: 'Paid',
-        fromDate: '2026-08-28',
-        toDate: '2026-08-29',
-        duration: 2,
-        remarks: 'Personal travel and family wedding.',
-        status: 'Pending',
-        adminComment: null,
-        appliedAt: '2026-08-19T09:40:00.000Z',
-        reviewedAt: null,
-        reviewedBy: null
-      },
-      {
-        id: 'lv-905',
-        employeeId: 'EMP-1102',
-        employeeName: 'David Kim',
-        department: 'Infrastructure',
-        leaveType: 'Sick',
-        fromDate: '2026-08-14',
-        toDate: '2026-08-14',
-        duration: 1,
-        remarks: 'Dental surgery procedure.',
-        status: 'Approved',
-        adminComment: 'Get well soon.',
-        appliedAt: '2026-08-13T12:00:00.000Z',
-        reviewedAt: '2026-08-13T13:30:00.000Z',
-        reviewedBy: 'Eleanor Vance'
-      },
-      {
-        id: 'lv-906',
-        employeeId: 'EMP-1145',
-        employeeName: 'Maya Patel',
-        department: 'Product',
-        leaveType: 'Unpaid',
-        fromDate: '2026-07-20',
-        toDate: '2026-07-22',
-        duration: 3,
-        remarks: 'Extended overseas personal leave.',
-        status: 'Approved',
-        adminComment: 'Noted and approved by management.',
-        appliedAt: '2026-07-10T14:10:00.000Z',
-        reviewedAt: '2026-07-11T09:00:00.000Z',
-        reviewedBy: 'Eleanor Vance'
-      },
-      {
-        id: 'lv-907',
-        employeeId: 'EMP-1190',
-        employeeName: 'James Wilson',
-        department: 'Engineering',
-        leaveType: 'Casual',
-        fromDate: '2026-08-18',
-        toDate: '2026-08-18',
-        duration: 1,
-        remarks: 'Home renovation repair work inspection.',
-        status: 'Rejected',
-        adminComment: 'Critical sprint testing release scheduled on that date.',
-        appliedAt: '2026-08-17T08:00:00.000Z',
-        reviewedAt: '2026-08-17T10:30:00.000Z',
-        reviewedBy: 'Eleanor Vance'
-      }
-    ];
-
-    // 5. PAYROLL RECORDS
-    this.payroll = [
-      {
-        id: 'pay-2026-07-1042',
-        employeeId: 'EMP-1042',
-        employeeName: 'Alex Morgan',
-        department: 'Design & UX',
-        designation: 'Senior Product Designer',
-        month: 'July 2026',
-        monthCode: '2026-07',
-        basic: 6500,
-        hra: 2200,
-        transport: 600,
-        medical: 500,
-        gross: 9800,
-        taxDeduction: 1470,
-        pfDeduction: 784,
-        netSalary: 7546,
-        status: 'Paid',
-        paymentMethod: 'Direct Deposit (ACH)',
-        paymentDate: '2026-07-31',
-        slipUrl: '/api/payroll/me/slip/2026-07'
-      },
-      {
-        id: 'pay-2026-06-1042',
-        employeeId: 'EMP-1042',
-        employeeName: 'Alex Morgan',
-        department: 'Design & UX',
-        designation: 'Senior Product Designer',
-        month: 'June 2026',
-        monthCode: '2026-06',
-        basic: 6500,
-        hra: 2200,
-        transport: 600,
-        medical: 500,
-        gross: 9800,
-        taxDeduction: 1470,
-        pfDeduction: 784,
-        netSalary: 7546,
-        status: 'Paid',
-        paymentMethod: 'Direct Deposit (ACH)',
-        paymentDate: '2026-06-30',
-        slipUrl: '/api/payroll/me/slip/2026-06'
-      },
-      {
-        id: 'pay-2026-05-1042',
-        employeeId: 'EMP-1042',
-        employeeName: 'Alex Morgan',
-        department: 'Design & UX',
-        designation: 'Senior Product Designer',
-        month: 'May 2026',
-        monthCode: '2026-05',
-        basic: 6500,
-        hra: 2200,
-        transport: 600,
-        medical: 500,
-        gross: 9800,
-        taxDeduction: 1470,
-        pfDeduction: 784,
-        netSalary: 7546,
-        status: 'Paid',
-        paymentMethod: 'Direct Deposit (ACH)',
-        paymentDate: '2026-05-31',
-        slipUrl: '/api/payroll/me/slip/2026-05'
-      },
-      {
-        id: 'pay-2026-08-1042',
-        employeeId: 'EMP-1042',
-        employeeName: 'Alex Morgan',
-        department: 'Design & UX',
-        designation: 'Senior Product Designer',
-        month: 'August 2026',
-        monthCode: '2026-08',
-        basic: 6500,
-        hra: 2200,
-        transport: 600,
-        medical: 500,
-        gross: 9800,
-        taxDeduction: 1470,
-        pfDeduction: 784,
-        netSalary: 7546,
-        status: 'Processed',
-        paymentMethod: 'Direct Deposit (ACH)',
-        paymentDate: '2026-08-31',
-        slipUrl: '/api/payroll/me/slip/2026-08'
-      },
-      // Other employees for August 2026
-      {
-        id: 'pay-2026-08-1088',
-        employeeId: 'EMP-1088',
-        employeeName: 'Sarah Chen',
-        department: 'Engineering',
-        designation: 'Lead Frontend Engineer',
-        month: 'August 2026',
-        monthCode: '2026-08',
-        basic: 8200,
-        hra: 2800,
-        transport: 700,
-        medical: 600,
-        gross: 12300,
-        taxDeduction: 1980,
-        pfDeduction: 980,
-        netSalary: 9340,
-        status: 'Processed',
-        paymentMethod: 'Direct Deposit (ACH)',
-        paymentDate: '2026-08-31',
-        slipUrl: '/api/payroll/me/slip/2026-08'
-      },
-      {
-        id: 'pay-2026-08-1102',
-        employeeId: 'EMP-1102',
-        employeeName: 'David Kim',
-        department: 'Infrastructure',
-        designation: 'DevOps Architect',
-        month: 'August 2026',
-        monthCode: '2026-08',
-        basic: 7800,
-        hra: 2500,
-        transport: 650,
-        medical: 550,
-        gross: 11500,
-        taxDeduction: 1750,
-        pfDeduction: 920,
-        netSalary: 8830,
-        status: 'Processed',
-        paymentMethod: 'Direct Deposit (ACH)',
-        paymentDate: '2026-08-31',
-        slipUrl: '/api/payroll/me/slip/2026-08'
-      },
-      {
-        id: 'pay-2026-08-1145',
-        employeeId: 'EMP-1145',
-        employeeName: 'Maya Patel',
-        department: 'Product',
-        designation: 'Principal PM',
-        month: 'August 2026',
-        monthCode: '2026-08',
-        basic: 8500,
-        hra: 3000,
-        transport: 800,
-        medical: 600,
-        gross: 12900,
-        taxDeduction: 2100,
-        pfDeduction: 1030,
-        netSalary: 9770,
-        status: 'Processed',
-        paymentMethod: 'Direct Deposit (ACH)',
-        paymentDate: '2026-08-31',
-        slipUrl: '/api/payroll/me/slip/2026-08'
-      },
-      {
-        id: 'pay-2026-08-1190',
-        employeeId: 'EMP-1190',
-        employeeName: 'James Wilson',
-        department: 'Engineering',
-        designation: 'QA Automation Lead',
-        month: 'August 2026',
-        monthCode: '2026-08',
-        basic: 6200,
-        hra: 2100,
-        transport: 550,
-        medical: 500,
-        gross: 9350,
-        taxDeduction: 1390,
-        pfDeduction: 748,
-        netSalary: 7212,
-        status: 'Pending',
-        paymentMethod: 'Direct Deposit (ACH)',
-        paymentDate: '2026-08-31',
-        slipUrl: '/api/payroll/me/slip/2026-08'
-      }
-    ];
-
-    // 6. REVIEWS
-    this.reviews = [
-      {
-        id: 'rev-2026-q2-1042',
-        employeeId: 'EMP-1042',
-        employeeName: 'Alex Morgan',
-        department: 'Design & UX',
-        period: 'Q2 2026 (Apr - Jun)',
-        reviewer: 'Eleanor Vance',
-        reviewerRole: 'VP of HR',
-        score: 94,
-        rating: 'Exceeds Expectations',
-        strengths: 'Outstanding design velocity, spearheaded the new Dayflow design system revamp, elevated UX accessibility standards.',
-        improvements: 'Could mentor junior UX researchers more actively and participate in quarterly roadmap workshops.',
-        feedback: 'Alex has consistently delivered high-caliber design artifacts that streamlined our user journey. Her attention to typography, micro-interactions, and visual harmony makes our product standout in the market.',
-        reviewDate: '2026-07-05',
-        status: 'Published'
-      },
-      {
-        id: 'rev-2026-q1-1042',
-        employeeId: 'EMP-1042',
-        employeeName: 'Alex Morgan',
-        department: 'Design & UX',
-        period: 'Q1 2026 (Jan - Mar)',
-        reviewer: 'Eleanor Vance',
-        reviewerRole: 'VP of HR',
-        score: 91,
-        rating: 'Exceeds Expectations',
-        strengths: 'Rapid prototyping, clean Figma component library architecture, strong collaboration with frontend engineers.',
-        improvements: 'Ensure earlier design freeze before major engineering sprint commits.',
-        feedback: 'Alex executed the mobile design redesign ahead of schedule and demonstrated exceptional cross-functional empathy.',
-        reviewDate: '2026-04-08',
-        status: 'Published'
-      },
-      {
-        id: 'rev-2025-annual-1042',
-        employeeId: 'EMP-1042',
-        employeeName: 'Alex Morgan',
-        department: 'Design & UX',
-        period: 'Annual 2025',
-        reviewer: 'Eleanor Vance',
-        reviewerRole: 'VP of HR',
-        score: 96,
-        rating: 'Exceptional',
-        strengths: 'Core design leadership, initiated design token pipeline, zero critical UX defects post-release.',
-        improvements: 'Expand external portfolio presentations.',
-        feedback: 'A stellar year for Alex. Promoted to Senior Product Designer with unanimous team acclaim.',
-        reviewDate: '2025-12-20',
-        status: 'Published'
-      },
-      {
-        id: 'rev-2026-q2-1088',
-        employeeId: 'EMP-1088',
-        employeeName: 'Sarah Chen',
-        department: 'Engineering',
-        period: 'Q2 2026 (Apr - Jun)',
-        reviewer: 'Eleanor Vance',
-        reviewerRole: 'VP of HR',
-        score: 97,
-        rating: 'Exceptional',
-        strengths: 'Architected high performance React SPA core, lowered bundle payload by 42%.',
-        improvements: 'Encourage delegation for junior code reviews.',
-        feedback: 'Outstanding technical leadership across the entire web stack.',
-        reviewDate: '2026-07-06',
-        status: 'Published'
-      }
-    ];
-
-    // 7. NOTIFICATIONS
-    this.notifications = [
-      {
-        id: 'ntf-01',
-        userId: 'usr-emp-01',
-        title: 'Leave Request Approved',
-        message: 'Your leave request for Yosemite (Sep 10 - Sep 12) was approved by Eleanor Vance.',
-        type: 'leave',
-        isRead: false,
-        createdAt: '2026-08-16T14:20:00.000Z'
-      },
-      {
-        id: 'ntf-02',
-        userId: 'usr-emp-01',
-        title: 'Payslip Available for Download',
-        message: 'Your salary payslip for July 2026 ($7,546 Net) has been generated and is ready.',
-        type: 'payroll',
-        isRead: false,
-        createdAt: '2026-08-01T09:00:00.000Z'
-      },
-      {
-        id: 'ntf-03',
-        userId: 'usr-emp-01',
-        title: 'Performance Review Published',
-        message: 'Your Q2 2026 Performance Review has been finalized with a score of 94/100.',
-        type: 'review',
-        isRead: true,
-        createdAt: '2026-07-05T11:00:00.000Z'
-      },
-      {
-        id: 'ntf-04',
-        userId: 'usr-admin-01',
-        title: 'New Leave Application Pending',
-        message: 'Alex Morgan submitted a new leave request (Figma Config, Oct 01 - Oct 02).',
-        type: 'leave',
-        isRead: false,
-        createdAt: '2026-08-20T11:15:00.000Z'
-      },
-      {
-        id: 'ntf-05',
-        userId: 'usr-admin-01',
-        title: 'August Payroll Run Prepared',
-        message: 'Draft payroll calculations for 6 active employees ready for approval & processing.',
-        type: 'payroll',
-        isRead: false,
-        createdAt: '2026-08-21T08:30:00.000Z'
-      }
-    ];
-
-    // 8. FINANCE DATA
+    this.leaves = [];
+    this.payroll = [];
+    this.reviews = [];
+    this.notifications = [];
     this.finance = {
       summary: {
         totalRevenue: 284500,
@@ -918,15 +59,12 @@ class InMemoryDataStore {
         { department: 'Infrastructure', budget: 25000, actual: 23100, utilization: 92.4 }
       ],
       recentTransactions: [
-        { id: 'TX-8801', title: 'AWS Cloud Hosting & Kubernetes', category: 'Infrastructure', amount: 8450.00, date: '2026-08-20', status: 'Completed', type: 'Expense' },
-        { id: 'TX-8802', title: 'Enterprise Client Subscription #490', category: 'Revenue', amount: 48000.00, date: '2026-08-19', status: 'Completed', type: 'Income' },
-        { id: 'TX-8803', title: 'Figma Enterprise Annual Licensing', category: 'Design & UX', amount: 3600.00, date: '2026-08-18', status: 'Completed', type: 'Expense' },
-        { id: 'TX-8804', title: 'WeWork Global Access Hubs', category: 'Facilities', amount: 4200.00, date: '2026-08-15', status: 'Completed', type: 'Expense' },
-        { id: 'TX-8805', title: 'Mid-Market SaaS License Contract', category: 'Revenue', amount: 22500.00, date: '2026-08-14', status: 'Completed', type: 'Income' }
+        { id: 'TX-8801', title: 'AWS Cloud Hosting & Kubernetes', category: 'Infrastructure', amount: 8450.0, date: '2026-08-20', status: 'Completed', type: 'Expense' },
+        { id: 'TX-8802', title: 'Enterprise SaaS Subscription (Acme Corp)', category: 'Sales', amount: 34200.0, date: '2026-08-19', status: 'Completed', type: 'Income' },
+        { id: 'TX-8803', title: 'Figma Organization Annual License', category: 'Software', amount: 4200.0, date: '2026-08-18', status: 'Completed', type: 'Expense' },
+        { id: 'TX-8804', title: 'Direct Deposit Payroll Disbursement Batch', category: 'Payroll', amount: 72890.0, date: '2026-08-15', status: 'Completed', type: 'Expense' }
       ]
     };
-
-    // 9. TIME MANAGEMENT DATA
     this.timeManagement = {
       summary: {
         totalTrackedHours: 1420,
@@ -946,21 +84,420 @@ class InMemoryDataStore {
       shiftSchedules: [
         { shiftName: 'General Morning (PST)', timing: '09:00 AM - 05:30 PM', assignedEmployees: 4, compliance: 96 },
         { shiftName: 'Central Flexible (CST)', timing: '08:30 AM - 05:00 PM', assignedEmployees: 2, compliance: 94 },
-        { shiftName: 'East Coast Operations', timing: '09:00 AM - 06:00 PM', assignedEmployees: 1, compliance: 98 }
-      ],
-      productivityTrends: [
-        { week: 'W1 Jul', score: 89, focusHours: 34.2, meetings: 5.8 },
-        { week: 'W2 Jul', score: 91, focusHours: 35.0, meetings: 5.0 },
-        { week: 'W3 Jul', score: 94, focusHours: 36.5, meetings: 4.2 },
-        { week: 'W4 Jul', score: 92, focusHours: 35.8, meetings: 4.8 },
-        { week: 'W1 Aug', score: 93, focusHours: 36.0, meetings: 4.5 },
-        { week: 'W2 Aug', score: 95, focusHours: 37.2, meetings: 3.8 }
+        { shiftName: 'Executive Shift (EST)', timing: '09:00 AM - 06:00 PM', assignedEmployees: 1, compliance: 98 }
       ]
     };
   }
 
-  // Repository Operations
+  /**
+   * Sync and populate in-memory state directly from Neon DB on server launch and mutations
+   */
+  async syncFromPostgres() {
+    try {
+      // 1. Fetch Users
+      const uRes = await query('SELECT * FROM users ORDER BY created_at ASC;');
+      this.users = uRes.rows.map(r => ({
+        id: r.id,
+        employeeId: r.employee_id,
+        email: r.email,
+        fullName: r.full_name,
+        passwordHash: r.password_hash,
+        role: r.role,
+        status: r.status,
+        isVerified: r.is_verified,
+        avatar: r.avatar,
+        createdAt: r.created_at,
+        lastLoginAt: r.last_login_at
+      }));
+
+      // 2. Fetch Invitations
+      const iRes = await query('SELECT * FROM invitations ORDER BY created_at DESC;');
+      this.invitations = iRes.rows.map(r => ({
+        id: r.id,
+        employeeId: r.employee_id,
+        email: r.email,
+        fullName: r.full_name,
+        role: r.role,
+        token: r.token,
+        expiresAt: r.expires_at,
+        status: r.status,
+        createdBy: r.created_by,
+        createdAt: r.created_at,
+        usedAt: r.used_at
+      }));
+
+      // 3. Fetch Employees with Salary & Leave Balances
+      const eRes = await query('SELECT * FROM employees ORDER BY created_at ASC;');
+      const sRes = await query('SELECT * FROM salary_structures;');
+      const lRes = await query('SELECT * FROM leave_balances;');
+      const dRes = await query('SELECT * FROM employee_documents;');
+
+      const salariesMap = new Map(sRes.rows.map(s => [s.employee_id, s]));
+      const balancesMap = new Map(lRes.rows.map(l => [l.employee_id, l]));
+
+      this.employees = eRes.rows.map(e => {
+        const sal = salariesMap.get(e.employee_id);
+        const bal = balancesMap.get(e.employee_id);
+        const docs = dRes.rows.filter(d => d.employee_id === e.employee_id);
+
+        return {
+          id: e.id,
+          employeeId: e.employee_id,
+          userId: e.user_id,
+          fullName: e.full_name,
+          email: e.email,
+          phone: e.phone,
+          address: e.address,
+          emergencyContact: e.emergency_contact,
+          avatar: e.avatar,
+          status: e.status,
+          jobDetails: {
+            title: e.job_title,
+            department: e.department,
+            designation: e.designation,
+            workType: e.work_type,
+            joinDate: e.join_date ? e.join_date.toISOString().split('T')[0] : '2023-01-01',
+            reportingManager: e.reporting_manager,
+            location: e.location,
+            workShift: e.work_shift
+          },
+          salaryStructure: sal ? {
+            currency: sal.currency,
+            basic: Number(sal.basic),
+            hra: Number(sal.hra),
+            transport: Number(sal.transport),
+            medical: Number(sal.medical),
+            gross: Number(sal.gross),
+            taxDeduction: Number(sal.tax_deduction),
+            pfDeduction: Number(sal.pf_deduction),
+            netSalary: Number(sal.net_salary)
+          } : {
+            currency: 'USD',
+            basic: 6500,
+            hra: 2200,
+            transport: 600,
+            medical: 500,
+            gross: 9800,
+            taxDeduction: 1470,
+            pfDeduction: 784,
+            netSalary: 7546
+          },
+          leaveBalances: bal ? {
+            annual: bal.annual,
+            monthly: bal.monthly,
+            daily: bal.daily,
+            hourly: bal.hourly,
+            sick: bal.sick
+          } : {
+            annual: 18,
+            monthly: 2,
+            daily: 5,
+            hourly: 16,
+            sick: 10
+          },
+          documents: docs.map(d => ({
+            name: d.name,
+            size: d.file_size,
+            type: d.document_type,
+            fileUrl: d.file_url,
+            uploadedAt: d.uploaded_at
+          }))
+        };
+      });
+
+      // 4. Fetch Attendance
+      const aRes = await query('SELECT * FROM attendance ORDER BY date DESC;');
+      this.attendance = aRes.rows.map(r => ({
+        id: r.id,
+        employeeId: r.employee_id,
+        date: r.date instanceof Date ? r.date.toISOString().split('T')[0] : r.date,
+        checkIn: r.check_in,
+        checkOut: r.check_out,
+        workHours: r.work_hours,
+        status: r.status,
+        device: r.device,
+        location: r.location
+      }));
+
+      // 5. Fetch Leaves
+      const lvRes = await query('SELECT * FROM leaves ORDER BY applied_at DESC;');
+      this.leaves = lvRes.rows.map(r => ({
+        id: r.id,
+        employeeId: r.employee_id,
+        employeeName: r.employee_name,
+        department: r.department,
+        leaveType: r.leave_type,
+        fromDate: r.from_date instanceof Date ? r.from_date.toISOString().split('T')[0] : r.from_date,
+        toDate: r.to_date instanceof Date ? r.to_date.toISOString().split('T')[0] : r.to_date,
+        duration: r.duration,
+        remarks: r.remarks,
+        status: r.status,
+        adminComment: r.admin_comment,
+        appliedAt: r.applied_at,
+        reviewedAt: r.reviewed_at,
+        reviewedBy: r.reviewed_by
+      }));
+
+      // 6. Fetch Payroll
+      const pRes = await query('SELECT * FROM payroll ORDER BY month_code DESC;');
+      this.payroll = pRes.rows.map(r => ({
+        id: r.id,
+        employeeId: r.employee_id,
+        employeeName: r.employee_name,
+        department: r.department,
+        designation: r.designation,
+        month: r.month,
+        monthCode: r.month_code,
+        basic: Number(r.basic),
+        hra: Number(r.hra),
+        transport: Number(r.transport),
+        medical: Number(r.medical),
+        gross: Number(r.gross),
+        taxDeduction: Number(r.tax_deduction),
+        pfDeduction: Number(r.pf_deduction),
+        netSalary: Number(r.net_salary),
+        status: r.status,
+        paymentMethod: r.payment_method,
+        paymentDate: r.payment_date instanceof Date ? r.payment_date.toISOString().split('T')[0] : r.payment_date,
+        slipUrl: r.slip_url
+      }));
+
+      // 7. Fetch Reviews
+      const revRes = await query('SELECT * FROM reviews ORDER BY review_date DESC;');
+      this.reviews = revRes.rows.map(r => ({
+        id: r.id,
+        employeeId: r.employee_id,
+        employeeName: r.employee_name,
+        department: r.department,
+        period: r.period,
+        reviewer: r.reviewer,
+        reviewerRole: r.reviewer_role,
+        score: r.score,
+        rating: r.rating,
+        strengths: r.strengths,
+        improvements: r.improvements,
+        feedback: r.feedback,
+        reviewDate: r.review_date instanceof Date ? r.review_date.toISOString().split('T')[0] : r.review_date,
+        status: r.status
+      }));
+
+      // 8. Fetch Notifications
+      const nRes = await query('SELECT * FROM notifications ORDER BY created_at DESC;');
+      this.notifications = nRes.rows.map(r => ({
+        id: r.id,
+        userId: r.user_id,
+        title: r.title,
+        message: r.message,
+        type: r.type,
+        isRead: r.is_read,
+        createdAt: r.created_at
+      }));
+
+      // 9. Fetch Finance Data
+      const finSumRes = await query('SELECT * FROM finance_summary LIMIT 1;');
+      if (finSumRes.rows.length > 0) {
+        const fs = finSumRes.rows[0];
+        this.finance.summary = {
+          totalRevenue: Number(fs.total_revenue),
+          revenueChange: Number(fs.revenue_change),
+          totalExpenses: Number(fs.total_expenses),
+          expenseChange: Number(fs.expense_change),
+          netProfit: Number(fs.net_profit),
+          profitChange: Number(fs.profit_change),
+          pendingInvoices: Number(fs.pending_invoices),
+          invoicesCount: fs.invoices_count,
+          payrollSpending: Number(fs.payroll_spending),
+          payrollChange: Number(fs.payroll_change),
+          cashRunwayMonths: Number(fs.cash_runway_months)
+        };
+      }
+
+      const cfRes = await query('SELECT * FROM cash_flow ORDER BY sort_order ASC;');
+      if (cfRes.rows.length > 0) {
+        this.finance.cashFlow = cfRes.rows.map(r => ({
+          month: r.month,
+          revenue: Number(r.revenue),
+          expenses: Number(r.expenses),
+          net: Number(r.net)
+        }));
+      }
+
+      const ecRes = await query('SELECT * FROM expense_categories;');
+      if (ecRes.rows.length > 0) {
+        this.finance.expenseCategories = ecRes.rows.map(r => ({
+          name: r.name,
+          value: Number(r.value),
+          color: r.color
+        }));
+      }
+
+      const dsRes = await query('SELECT * FROM department_spending;');
+      if (dsRes.rows.length > 0) {
+        this.finance.departmentSpending = dsRes.rows.map(r => ({
+          department: r.department,
+          budget: Number(r.budget),
+          actual: Number(r.actual),
+          utilization: Number(r.utilization)
+        }));
+      }
+
+      const txRes = await query('SELECT * FROM ledger_transactions ORDER BY date DESC LIMIT 10;');
+      if (txRes.rows.length > 0) {
+        this.finance.recentTransactions = txRes.rows.map(r => ({
+          id: r.transaction_code,
+          title: r.title,
+          category: r.category,
+          amount: Number(r.amount),
+          date: r.date instanceof Date ? r.date.toISOString().split('T')[0] : r.date,
+          status: r.status,
+          type: r.type
+        }));
+      }
+
+      // 10. Fetch Time Management Data
+      const tmRes = await query('SELECT * FROM time_management_summary LIMIT 1;');
+      if (tmRes.rows.length > 0) {
+        const tm = tmRes.rows[0];
+        this.timeManagement.summary = {
+          totalTrackedHours: Number(tm.total_tracked_hours),
+          averageWorkHours: Number(tm.average_work_hours),
+          overtimeHours: Number(tm.overtime_hours),
+          productivityScore: Number(tm.productivity_score),
+          onTimeArrivalRate: Number(tm.on_time_arrival_rate),
+          activeClockedInNow: tm.active_clocked_in_now
+        };
+      }
+
+      const hmRes = await query('SELECT * FROM weekly_heatmap ORDER BY sort_order ASC;');
+      if (hmRes.rows.length > 0) {
+        this.timeManagement.weeklyHeatmap = hmRes.rows.map(r => ({
+          day: r.day,
+          '08:00': r.hour_08,
+          '10:00': r.hour_10,
+          '12:00': r.hour_12,
+          '14:00': r.hour_14,
+          '16:00': r.hour_16,
+          '18:00': r.hour_18
+        }));
+      }
+
+      const schRes = await query('SELECT * FROM shift_schedules;');
+      if (schRes.rows.length > 0) {
+        this.timeManagement.shiftSchedules = schRes.rows.map(r => ({
+          shiftName: r.shift_name,
+          timing: r.timing,
+          assignedEmployees: r.assigned_employees,
+          compliance: Number(r.compliance)
+        }));
+      }
+
+      console.log(`📡 [Neon DB Sync] Synchronized ${this.users.length} users, ${this.employees.length} employees, ${this.invitations.length} invitations, ${this.attendance.length} attendance records.`);
+    } catch (err) {
+      console.error('[Neon DB Sync Error]:', err.message);
+    }
+  }
+
+  // ==========================================
+  // INVITATION OPERATIONS (Source of Truth)
+  // ==========================================
+  createInvitation({ employeeId, email, fullName, role = 'employee', createdBy = 'HR Admin', expiresInDays = 7 }) {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString();
+    const sanitizedRole = role === 'admin' ? 'admin' : 'employee';
+
+    const invitation = {
+      id: `inv-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+      employeeId,
+      email: email.toLowerCase(),
+      fullName,
+      role: sanitizedRole,
+      token,
+      expiresAt,
+      status: 'INVITED',
+      createdBy,
+      createdAt: new Date().toISOString(),
+      usedAt: null
+    };
+
+    this.invitations.unshift(invitation);
+
+    // Persist to Neon DB asynchronously
+    query(`
+      INSERT INTO invitations (employee_id, email, full_name, role, token, expires_at, status, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      ON CONFLICT (token) DO UPDATE SET status = EXCLUDED.status;
+    `, [employeeId, email.toLowerCase(), fullName, sanitizedRole, token, expiresAt, 'INVITED', createdBy]).catch(console.error);
+
+    return invitation;
+  }
+
+  findInvitationByToken(token) {
+    if (!token) return null;
+    return this.invitations.find(i => i.token === token);
+  }
+
+  findInvitationByEmail(email) {
+    if (!email) return null;
+    return this.invitations.find(i => i.email.toLowerCase() === email.toLowerCase());
+  }
+
+  findInvitationByEmployeeId(empId) {
+    if (!empId) return null;
+    return this.invitations.find(i => i.employeeId.toUpperCase() === empId.toUpperCase());
+  }
+
+  getAllInvitations() {
+    return this.invitations;
+  }
+
+  acceptInvitation(token) {
+    const invitation = this.findInvitationByToken(token);
+    if (!invitation) return null;
+
+    invitation.status = 'ACCEPTED';
+    invitation.usedAt = new Date().toISOString();
+
+    query(`
+      UPDATE invitations SET status = 'ACCEPTED', used_at = NOW() WHERE token = $1;
+    `, [token]).catch(console.error);
+
+    return invitation;
+  }
+
+  revokeInvitation(invitationId) {
+    const index = this.invitations.findIndex(i => i.id === invitationId || i.token === invitationId);
+    if (index === -1) return false;
+
+    this.invitations[index].status = 'REVOKED';
+
+    query(`
+      UPDATE invitations SET status = 'REVOKED' WHERE id::text = $1 OR token = $1;
+    `, [invitationId]).catch(console.error);
+
+    return true;
+  }
+
+  resendInvitation(invitationId) {
+    const inv = this.invitations.find(i => i.id === invitationId);
+    if (!inv) return null;
+
+    inv.token = crypto.randomBytes(32).toString('hex');
+    inv.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    inv.status = 'INVITED';
+    inv.createdAt = new Date().toISOString();
+
+    query(`
+      UPDATE invitations SET token = $1, expires_at = $2, status = 'INVITED' WHERE id::text = $3;
+    `, [inv.token, inv.expiresAt, invitationId]).catch(console.error);
+
+    return inv;
+  }
+
+  // ==========================================
+  // USER / ACCOUNT OPERATIONS
+  // ==========================================
   findUserByEmail(email) {
+    if (!email) return null;
     return this.users.find(u => u.email.toLowerCase() === email.toLowerCase());
   }
 
@@ -969,69 +506,68 @@ class InMemoryDataStore {
   }
 
   findUserByEmployeeId(empId) {
-    return this.users.find(u => u.employeeId === empId);
+    if (!empId) return null;
+    return this.users.find(u => u.employeeId.toUpperCase() === empId.toUpperCase());
   }
 
-  createUser(userData) {
-    const newUser = {
-      id: `usr-${Date.now()}`,
-      ...userData,
-      isVerified: userData.isVerified || false,
-      createdAt: new Date().toISOString()
-    };
-    this.users.push(newUser);
+  /**
+   * Activate user from invitation with STRICT backend role enforcement
+   */
+  activateUserFromInvitation({ invitation, passwordHash }) {
+    let existingUser = this.findUserByEmail(invitation.email);
 
-    // Also auto-create initial Employee profile record if not present
-    const existingProfile = this.employees.find(e => e.employeeId === userData.employeeId);
-    if (!existingProfile) {
-      this.employees.push({
-        id: `emp-${Date.now()}`,
-        employeeId: userData.employeeId,
-        userId: newUser.id,
-        fullName: userData.fullName,
-        email: userData.email,
-        phone: '+1 (555) 000-0000',
-        address: 'Company Headquarters, Suite 100',
-        emergencyContact: 'Not specified',
-        avatar: userData.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=256&auto=format&fit=crop',
-        status: 'Active',
-        jobDetails: {
-          title: userData.role === 'admin' ? 'HR Administrator' : 'Software Associate',
-          department: userData.role === 'admin' ? 'Human Resources' : 'Engineering',
-          designation: userData.role === 'admin' ? 'HR Specialist' : 'Associate IC',
-          workType: 'Full-Time (Remote)',
-          joinDate: new Date().toISOString().split('T')[0],
-          reportingManager: 'Eleanor Vance',
-          location: 'Remote',
-          workShift: '09:00 AM - 05:30 PM'
-        },
-        salaryStructure: {
-          currency: 'USD',
-          basic: 5000,
-          hra: 1500,
-          transport: 400,
-          medical: 400,
-          gross: 7300,
-          taxDeduction: 1095,
-          pfDeduction: 584,
-          netSalary: 5621
-        },
-        leaveBalances: {
-          annual: 15,
-          monthly: 2,
-          daily: 4,
-          hourly: 16,
-          sick: 10
-        },
-        documents: []
-      });
+    if (existingUser) {
+      existingUser.passwordHash = passwordHash;
+      existingUser.status = 'ACTIVE';
+      existingUser.isVerified = true;
+      existingUser.role = invitation.role;
+      existingUser.lastLoginAt = new Date().toISOString();
+
+      query(`
+        UPDATE users SET password_hash = $1, status = 'ACTIVE', is_verified = TRUE, role = $2, last_login_at = NOW()
+        WHERE email = $3;
+      `, [passwordHash, invitation.role, invitation.email]).catch(console.error);
+    } else {
+      existingUser = {
+        id: `usr-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+        employeeId: invitation.employeeId,
+        email: invitation.email,
+        fullName: invitation.fullName,
+        passwordHash,
+        role: invitation.role,
+        status: 'ACTIVE',
+        isVerified: true,
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop',
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString()
+      };
+      this.users.push(existingUser);
+
+      query(`
+        INSERT INTO users (employee_id, email, full_name, password_hash, role, status, is_verified, avatar)
+        VALUES ($1, $2, $3, $4, $5, 'ACTIVE', TRUE, $6)
+        ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, status = 'ACTIVE';
+      `, [invitation.employeeId, invitation.email, invitation.fullName, passwordHash, invitation.role, existingUser.avatar]).catch(console.error);
     }
 
-    return newUser;
+    this.acceptInvitation(invitation.token);
+
+    const empProfile = this.getEmployeeProfile(invitation.employeeId);
+    if (empProfile) {
+      empProfile.status = 'Active';
+      empProfile.userId = existingUser.id;
+
+      query(`
+        UPDATE employees SET status = 'Active' WHERE employee_id = $1;
+      `, [invitation.employeeId]).catch(console.error);
+    }
+
+    return existingUser;
   }
 
   getEmployeeProfile(employeeId) {
-    return this.employees.find(e => e.employeeId === employeeId);
+    if (!employeeId) return null;
+    return this.employees.find(e => e.employeeId.toUpperCase() === employeeId.toUpperCase());
   }
 
   getEmployeeProfileByUserId(userId) {
@@ -1039,10 +575,9 @@ class InMemoryDataStore {
   }
 
   updateEmployeeProfile(employeeId, updates) {
-    const empIndex = this.employees.findIndex(e => e.employeeId === employeeId);
+    const empIndex = this.employees.findIndex(e => e.employeeId.toUpperCase() === employeeId.toUpperCase());
     if (empIndex === -1) return null;
 
-    // Merge nested jobDetails and salaryStructure cleanly
     const current = this.employees[empIndex];
     const updated = {
       ...current,
@@ -1051,7 +586,6 @@ class InMemoryDataStore {
       salaryStructure: updates.salaryStructure ? { ...current.salaryStructure, ...updates.salaryStructure } : current.salaryStructure
     };
 
-    // If user avatar or fullName changed, sync to user table
     const user = this.users.find(u => u.employeeId === employeeId);
     if (user) {
       if (updates.fullName) user.fullName = updates.fullName;
@@ -1059,14 +593,36 @@ class InMemoryDataStore {
     }
 
     this.employees[empIndex] = updated;
+
+    // Persist to Neon DB
+    query(`
+      UPDATE employees
+      SET full_name = COALESCE($1, full_name),
+          phone = COALESCE($2, phone),
+          address = COALESCE($3, address),
+          emergency_contact = COALESCE($4, emergency_contact),
+          avatar = COALESCE($5, avatar),
+          status = COALESCE($6, status),
+          updated_at = NOW()
+      WHERE employee_id = $7;
+    `, [
+      updates.fullName || null,
+      updates.phone || null,
+      updates.address || null,
+      updates.emergencyContact || null,
+      updates.avatar || null,
+      updates.status || null,
+      employeeId
+    ]).catch(console.error);
+
     return updated;
   }
 
-  getAllEmployees(query = {}) {
+  getAllEmployees(queryFilter = {}) {
     let list = [...this.employees];
 
-    if (query.search) {
-      const s = query.search.toLowerCase();
+    if (queryFilter.search) {
+      const s = queryFilter.search.toLowerCase();
       list = list.filter(e =>
         e.fullName.toLowerCase().includes(s) ||
         e.email.toLowerCase().includes(s) ||
@@ -1076,12 +632,12 @@ class InMemoryDataStore {
       );
     }
 
-    if (query.department && query.department !== 'All') {
-      list = list.filter(e => e.jobDetails && e.jobDetails.department === query.department);
+    if (queryFilter.department && queryFilter.department !== 'All') {
+      list = list.filter(e => e.jobDetails && e.jobDetails.department === queryFilter.department);
     }
 
-    if (query.status && query.status !== 'All') {
-      list = list.filter(e => e.status === query.status);
+    if (queryFilter.status && queryFilter.status !== 'All') {
+      list = list.filter(e => e.status === queryFilter.status);
     }
 
     return list;
@@ -1128,6 +684,12 @@ class InMemoryDataStore {
       record.workHours = 'In Progress';
     }
 
+    query(`
+      INSERT INTO attendance (employee_id, date, check_in, check_out, work_hours, status)
+      VALUES ($1, $2, $3, NULL, 'In Progress', 'Present')
+      ON CONFLICT (employee_id, date) DO UPDATE SET check_in = EXCLUDED.check_in, status = 'Present';
+    `, [employeeId, todayStr, timeStr]).catch(console.error);
+
     return { record, alreadyCheckedIn: false };
   }
 
@@ -1143,21 +705,28 @@ class InMemoryDataStore {
     }
 
     record.checkOut = timeStr;
-    record.workHours = '8.5 hrs'; // realistic calculated shift duration
+    record.workHours = '8.5 hrs';
+
+    query(`
+      UPDATE attendance
+      SET check_out = $1, work_hours = '8.5 hrs'
+      WHERE employee_id = $2 AND date = $3;
+    `, [timeStr, employeeId, todayStr]).catch(console.error);
+
     return { record, notCheckedIn: false };
   }
 
-  getAllAttendance(query = {}) {
+  getAllAttendance(queryFilter = {}) {
     let list = [...this.attendance];
 
-    if (query.employeeId && query.employeeId !== 'All') {
-      list = list.filter(a => a.employeeId === query.employeeId);
+    if (queryFilter.employeeId && queryFilter.employeeId !== 'All') {
+      list = list.filter(a => a.employeeId === queryFilter.employeeId);
     }
-    if (query.status && query.status !== 'All') {
-      list = list.filter(a => a.status === query.status);
+    if (queryFilter.status && queryFilter.status !== 'All') {
+      list = list.filter(a => a.status === queryFilter.status);
     }
-    if (query.date) {
-      list = list.filter(a => a.date === query.date);
+    if (queryFilter.date) {
+      list = list.filter(a => a.date === queryFilter.date);
     }
 
     return list.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1169,14 +738,14 @@ class InMemoryDataStore {
       .sort((a, b) => new Date(b.appliedAt) - new Date(a.appliedAt));
   }
 
-  getAllLeaves(query = {}) {
+  getAllLeaves(queryFilter = {}) {
     let list = [...this.leaves];
 
-    if (query.status && query.status !== 'All') {
-      list = list.filter(l => l.status.toLowerCase() === query.status.toLowerCase());
+    if (queryFilter.status && queryFilter.status !== 'All') {
+      list = list.filter(l => l.status.toLowerCase() === queryFilter.status.toLowerCase());
     }
-    if (query.employeeId) {
-      list = list.filter(l => l.employeeId === query.employeeId);
+    if (queryFilter.employeeId) {
+      list = list.filter(l => l.employeeId === queryFilter.employeeId);
     }
 
     return list.sort((a, b) => new Date(b.appliedAt) - new Date(a.appliedAt));
@@ -1203,16 +772,10 @@ class InMemoryDataStore {
 
     this.leaves.unshift(newLeave);
 
-    // Notify Admins
-    this.notifications.unshift({
-      id: `ntf-${Date.now()}`,
-      userId: 'usr-admin-01',
-      title: 'New Leave Request Submitted',
-      message: `${newLeave.employeeName} submitted a ${newLeave.leaveType} leave request for ${newLeave.duration} day(s).`,
-      type: 'leave',
-      isRead: false,
-      createdAt: new Date().toISOString()
-    });
+    query(`
+      INSERT INTO leaves (employee_id, employee_name, department, leave_type, from_date, to_date, duration, remarks, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Pending');
+    `, [employeeId, newLeave.employeeName, newLeave.department, newLeave.leaveType, newLeave.fromDate, newLeave.toDate, newLeave.duration, newLeave.remarks]).catch(console.error);
 
     return newLeave;
   }
@@ -1226,6 +789,11 @@ class InMemoryDataStore {
     if (leave.status !== 'Pending') return { notPending: true };
 
     this.leaves.splice(index, 1);
+
+    query(`
+      DELETE FROM leaves WHERE id::text = $1 AND employee_id = $2;
+    `, [leaveId, employeeId]).catch(console.error);
+
     return { success: true };
   }
 
@@ -1238,7 +806,6 @@ class InMemoryDataStore {
     leave.reviewedAt = new Date().toISOString();
     leave.reviewedBy = adminName;
 
-    // Deduct leave balance if approved
     if (status === 'Approved') {
       const emp = this.getEmployeeProfile(leave.employeeId);
       if (emp && emp.leaveBalances) {
@@ -1251,19 +818,11 @@ class InMemoryDataStore {
       }
     }
 
-    // Notify employee
-    const user = this.users.find(u => u.employeeId === leave.employeeId);
-    if (user) {
-      this.notifications.unshift({
-        id: `ntf-${Date.now()}`,
-        userId: user.id,
-        title: `Leave Request ${status}`,
-        message: `Your ${leave.leaveType} leave request (${leave.fromDate} to ${leave.toDate}) has been ${status.toLowerCase()}.${leave.adminComment ? ` Note: ${leave.adminComment}` : ''}`,
-        type: 'leave',
-        isRead: false,
-        createdAt: new Date().toISOString()
-      });
-    }
+    query(`
+      UPDATE leaves
+      SET status = $1, admin_comment = $2, reviewed_at = NOW(), reviewed_by = $3
+      WHERE id::text = $4 OR id::text = $4;
+    `, [status, leave.adminComment, adminName, leaveId]).catch(console.error);
 
     return leave;
   }
@@ -1274,14 +833,14 @@ class InMemoryDataStore {
       .sort((a, b) => b.monthCode.localeCompare(a.monthCode));
   }
 
-  getAllPayroll(query = {}) {
+  getAllPayroll(queryFilter = {}) {
     let list = [...this.payroll];
 
-    if (query.monthCode && query.monthCode !== 'All') {
-      list = list.filter(p => p.monthCode === query.monthCode);
+    if (queryFilter.monthCode && queryFilter.monthCode !== 'All') {
+      list = list.filter(p => p.monthCode === queryFilter.monthCode);
     }
-    if (query.status && query.status !== 'All') {
-      list = list.filter(p => p.status === query.status);
+    if (queryFilter.status && queryFilter.status !== 'All') {
+      list = list.filter(p => p.status === queryFilter.status);
     }
 
     return list.sort((a, b) => b.monthCode.localeCompare(a.monthCode));
@@ -1292,6 +851,32 @@ class InMemoryDataStore {
     if (index === -1) return null;
 
     this.payroll[index] = { ...this.payroll[index], ...updates };
+
+    query(`
+      UPDATE payroll
+      SET basic = COALESCE($1, basic),
+          hra = COALESCE($2, hra),
+          transport = COALESCE($3, transport),
+          medical = COALESCE($4, medical),
+          gross = COALESCE($5, gross),
+          tax_deduction = COALESCE($6, tax_deduction),
+          pf_deduction = COALESCE($7, pf_deduction),
+          net_salary = COALESCE($8, net_salary),
+          status = COALESCE($9, status)
+      WHERE id::text = $10;
+    `, [
+      updates.basic || null,
+      updates.hra || null,
+      updates.transport || null,
+      updates.medical || null,
+      updates.gross || null,
+      updates.taxDeduction || null,
+      updates.pfDeduction || null,
+      updates.netSalary || null,
+      updates.status || null,
+      payrollId
+    ]).catch(console.error);
+
     return this.payroll[index];
   }
 
@@ -1326,6 +911,16 @@ class InMemoryDataStore {
         };
         this.payroll.unshift(newRecord);
         generated.push(newRecord);
+
+        query(`
+          INSERT INTO payroll (employee_id, employee_name, department, designation, month, month_code, basic, hra, transport, medical, gross, tax_deduction, pf_deduction, net_salary, status, payment_method, payment_date, slip_url)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'Processed', 'Direct Deposit (ACH)', CURRENT_DATE, $15)
+          ON CONFLICT (employee_id, month_code) DO NOTHING;
+        `, [
+          emp.employeeId, emp.fullName, newRecord.department, newRecord.designation,
+          monthName, monthCode, sal.basic, sal.hra, sal.transport, sal.medical,
+          sal.gross, sal.taxDeduction, sal.pfDeduction, sal.netSalary, newRecord.slipUrl
+        ]).catch(console.error);
       }
     });
 
@@ -1338,14 +933,14 @@ class InMemoryDataStore {
       .sort((a, b) => new Date(b.reviewDate) - new Date(a.reviewDate));
   }
 
-  getAllReviews(query = {}) {
+  getAllReviews(queryFilter = {}) {
     let list = [...this.reviews];
 
-    if (query.department && query.department !== 'All') {
-      list = list.filter(r => r.department === query.department);
+    if (queryFilter.department && queryFilter.department !== 'All') {
+      list = list.filter(r => r.department === queryFilter.department);
     }
-    if (query.period && query.period !== 'All') {
-      list = list.filter(r => r.period === query.period);
+    if (queryFilter.period && queryFilter.period !== 'All') {
+      list = list.filter(r => r.period === queryFilter.period);
     }
 
     return list.sort((a, b) => new Date(b.reviewDate) - new Date(a.reviewDate));
@@ -1372,19 +967,14 @@ class InMemoryDataStore {
 
     this.reviews.unshift(newRev);
 
-    // Notify employee
-    const user = this.users.find(u => u.employeeId === reviewData.employeeId);
-    if (user) {
-      this.notifications.unshift({
-        id: `ntf-${Date.now()}`,
-        userId: user.id,
-        title: 'New Performance Review Released',
-        message: `Your performance review for ${newRev.period} has been published (Score: ${newRev.score}/100).`,
-        type: 'review',
-        isRead: false,
-        createdAt: new Date().toISOString()
-      });
-    }
+    query(`
+      INSERT INTO reviews (employee_id, employee_name, department, period, reviewer, reviewer_role, score, rating, strengths, improvements, feedback, review_date, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_DATE, 'Published');
+    `, [
+      newRev.employeeId, newRev.employeeName, newRev.department, newRev.period,
+      newRev.reviewer, newRev.reviewerRole, newRev.score, newRev.rating,
+      newRev.strengths, newRev.improvements, newRev.feedback
+    ]).catch(console.error);
 
     return newRev;
   }
@@ -1399,6 +989,7 @@ class InMemoryDataStore {
     const ntf = this.notifications.find(n => n.id === id && n.userId === userId);
     if (ntf) {
       ntf.isRead = true;
+      query(`UPDATE notifications SET is_read = TRUE WHERE id::text = $1;`, [id]).catch(console.error);
       return true;
     }
     return false;
@@ -1410,6 +1001,7 @@ class InMemoryDataStore {
         n.isRead = true;
       }
     });
+    query(`UPDATE notifications SET is_read = TRUE WHERE user_id::text = $1;`, [userId]).catch(console.error);
     return true;
   }
 
@@ -1422,5 +1014,4 @@ class InMemoryDataStore {
   }
 }
 
-// Export singleton instance
-export const dataStore = new InMemoryDataStore();
+export const dataStore = new DataStoreService();

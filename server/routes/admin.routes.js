@@ -6,6 +6,9 @@ import {
   createEmployee,
   updateEmployee,
   toggleEmployeeStatus,
+  getInvitations,
+  resendInvitation,
+  revokeInvitation,
   getAdminAttendance,
   getAdminLeaves,
   approveLeave,
@@ -30,12 +33,17 @@ router.use(requireRole('admin'));
 // Dashboard
 router.get('/dashboard', getAdminDashboard);
 
-// Employees
+// Employees & Invitations
 router.get('/employees', getEmployees);
 router.post('/employees', createEmployee);
 router.get('/employees/:id', getEmployeeById);
 router.patch('/employees/:id', updateEmployee);
 router.patch('/employees/:id/status', toggleEmployeeStatus);
+
+// Invitations Management
+router.get('/invitations', getInvitations);
+router.post('/invitations/:id/resend', resendInvitation);
+router.delete('/invitations/:id', revokeInvitation);
 
 // Attendance
 router.get('/attendance', getAdminAttendance);

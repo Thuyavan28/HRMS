@@ -12,7 +12,6 @@ export const getAdminDashboard = async (req, res, next) => {
 
     const totalPayrollAmount = allPayroll.reduce((acc, p) => acc + p.netSalary, 0);
 
-    // KPI Summary
     const kpis = {
       totalEmployees: allEmployees.length,
       activeEmployees: activeEmployees.length,
@@ -23,10 +22,9 @@ export const getAdminDashboard = async (req, res, next) => {
       turnoverChange: -0.8,
       jobApplicants: 48,
       applicantsChange: 19.5,
-      employeeSatisfaction: 94.6 // Satisfaction gauge (out of 100)
+      employeeSatisfaction: 94.6
     };
 
-    // Team KPI Line Chart Trend (Past 6 months)
     const teamKpiTrend = [
       { month: 'Mar', productivity: 88, attendanceRate: 95, satisfaction: 91 },
       { month: 'Apr', productivity: 90, attendanceRate: 94, satisfaction: 92 },
@@ -36,7 +34,6 @@ export const getAdminDashboard = async (req, res, next) => {
       { month: 'Aug', productivity: 95, attendanceRate: 96, satisfaction: 95 }
     ];
 
-    // Employment Status Breakdown Bar Chart
     const employmentStatusData = [
       { type: 'Full-Time (Remote)', count: allEmployees.filter(e => e.jobDetails?.workType?.includes('Remote')).length || 3 },
       { type: 'Full-Time (Hybrid)', count: allEmployees.filter(e => e.jobDetails?.workType?.includes('Hybrid')).length || 3 },
@@ -44,7 +41,6 @@ export const getAdminDashboard = async (req, res, next) => {
       { type: 'Contractor', count: 1 }
     ];
 
-    // Department Distribution
     const departmentDistribution = [
       { name: 'Engineering', value: 3, color: '#00C896' },
       { name: 'Design & UX', value: 1, color: '#38BDF8' },
@@ -53,14 +49,12 @@ export const getAdminDashboard = async (req, res, next) => {
       { name: 'Infrastructure', value: 1, color: '#EC4899' }
     ];
 
-    // Leave Summary
     const leaveSummary = {
       pendingApprovals: pendingLeaves.length,
       onLeaveToday: 1,
       upcomingLeaves: allLeaves.filter(l => l.status === 'Approved' && new Date(l.fromDate) > new Date()).length
     };
 
-    // Recent Employees Table
     const recentEmployees = allEmployees.slice(0, 5).map(e => ({
       id: e.id,
       employeeId: e.employeeId,
@@ -140,29 +134,31 @@ export const getEmployeeById = async (req, res, next) => {
   }
 };
 
+/**
+ * HR / Admin creates employee and assigns authoritative role.
+ * Generates secure invitation token.
+ */
 export const createEmployee = async (req, res, next) => {
   try {
-    const { fullName, employeeId, email, password, role, department, title, designation, workType, basicSalary } = req.body;
+    const { fullName, employeeId, email, role, department, title, designation, workType, basicSalary, phone, address } = req.body;
 
-    const existing = dataStore.findUserByEmail(email) || dataStore.getEmployeeProfile(employeeId);
-    if (existing) {
+    const existingEmp = dataStore.getEmployeeProfile(employeeId);
+    if (existingEmp) {
       return res.status(409).json({
         success: false,
-        message: 'Employee with this email or ID already exists.'
+        message: `Employee ID ${employeeId} is already in use.`
       });
     }
 
-    const defaultPass = password || 'Employee@1234';
-    const passwordHash = await bcrypt.hash(defaultPass, 12);
+    const existingUser = dataStore.findUserByEmail(email);
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: `An account or invitation with email ${email} already exists.`
+      });
+    }
 
-    const newUser = dataStore.createUser({
-      fullName,
-      employeeId,
-      email,
-      passwordHash,
-      role: role || 'employee',
-      isVerified: true
-    });
+    const assignedRole = role === 'admin' ? 'admin' : 'employee';
 
     const basic = Number(basicSalary) || 6000;
     const hra = Math.round(basic * 0.3);
@@ -173,15 +169,25 @@ export const createEmployee = async (req, res, next) => {
     const pfDeduction = Math.round(basic * 0.12);
     const netSalary = gross - taxDeduction - pfDeduction;
 
-    const updatedProfile = dataStore.updateEmployeeProfile(employeeId, {
+    // 1. Create employee profile in pending 'Invited' state
+    const newEmployee = {
+      id: `emp-${Date.now()}`,
+      employeeId,
+      userId: null,
       fullName,
+      email,
+      phone: phone || '+1 (555) 000-0000',
+      address: address || 'Corporate Headquarters',
+      emergencyContact: 'Not specified',
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=256&auto=format&fit=crop',
+      status: 'Invited', // Will become 'Active' upon invitation setup
       jobDetails: {
         title: title || 'Software Engineer',
         department: department || 'Engineering',
         designation: designation || 'Staff IC',
         workType: workType || 'Full-Time (Remote)',
         joinDate: new Date().toISOString().split('T')[0],
-        reportingManager: 'Eleanor Vance',
+        reportingManager: req.user?.fullName || 'Eleanor Vance',
         location: 'HQ / Remote',
         workShift: '09:00 AM - 05:30 PM'
       },
@@ -195,13 +201,45 @@ export const createEmployee = async (req, res, next) => {
         taxDeduction,
         pfDeduction,
         netSalary
-      }
+      },
+      leaveBalances: {
+        annual: 18,
+        monthly: 2,
+        daily: 5,
+        hourly: 16,
+        sick: 10
+      },
+      documents: []
+    };
+
+    dataStore.employees.unshift(newEmployee);
+
+    // 2. Generate secure single-use invitation record with authoritative role
+    const invitation = dataStore.createInvitation({
+      employeeId,
+      email,
+      fullName,
+      role: assignedRole,
+      createdBy: `${req.user?.fullName || 'HR Admin'} (${req.user?.role || 'Admin'})`
     });
+
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const activationUrl = `${clientUrl}/activate?token=${invitation.token}`;
 
     res.status(201).json({
       success: true,
-      message: 'Employee created successfully.',
-      data: updatedProfile
+      message: `Employee ${fullName} created. Secure invitation generated for ${email}.`,
+      data: {
+        employee: newEmployee,
+        invitation: {
+          id: invitation.id,
+          token: invitation.token,
+          role: invitation.role,
+          expiresAt: invitation.expiresAt,
+          status: invitation.status
+        },
+        activationUrl
+      }
     });
   } catch (error) {
     next(error);
@@ -247,6 +285,12 @@ export const toggleEmployeeStatus = async (req, res, next) => {
     const newStatus = employee.status === 'Active' ? 'Deactivated' : 'Active';
     const updated = dataStore.updateEmployeeProfile(employee.employeeId, { status: newStatus });
 
+    // Also update associated user account status
+    const user = dataStore.findUserByEmployeeId(employee.employeeId);
+    if (user) {
+      user.status = newStatus === 'Active' ? 'ACTIVE' : 'DEACTIVATED';
+    }
+
     res.status(200).json({
       success: true,
       message: `Employee ${employee.fullName} marked as ${newStatus}.`,
@@ -257,14 +301,81 @@ export const toggleEmployeeStatus = async (req, res, next) => {
   }
 };
 
-// 3. ATTENDANCE MANAGEMENT
+// 3. INVITATIONS MANAGEMENT (HR / Admin)
+export const getInvitations = async (req, res, next) => {
+  try {
+    const invitations = dataStore.getAllInvitations();
+    res.status(200).json({
+      success: true,
+      data: {
+        invitations,
+        summary: {
+          total: invitations.length,
+          pending: invitations.filter(i => i.status === 'INVITED').length,
+          accepted: invitations.filter(i => i.status === 'ACCEPTED').length,
+          expired: invitations.filter(i => i.status === 'EXPIRED').length
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resendInvitation = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const updated = dataStore.resendInvitation(id);
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invitation not found.'
+      });
+    }
+
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const activationUrl = `${clientUrl}/activate?token=${updated.token}`;
+
+    res.status(200).json({
+      success: true,
+      message: `Invitation refreshed. New activation link generated for ${updated.email}.`,
+      data: {
+        invitation: updated,
+        activationUrl
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const revokeInvitation = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const success = dataStore.revokeInvitation(id);
+    if (!success) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invitation not found.'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Invitation revoked successfully.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 4. ATTENDANCE MANAGEMENT
 export const getAdminAttendance = async (req, res, next) => {
   try {
     const { employeeId, status, date } = req.query;
     const records = dataStore.getAllAttendance({ employeeId, status, date });
     const allEmployees = dataStore.getAllEmployees();
 
-    // Attach employee details to records
     const enrichedRecords = records.map(r => {
       const emp = allEmployees.find(e => e.employeeId === r.employeeId);
       return {
@@ -275,7 +386,6 @@ export const getAdminAttendance = async (req, res, next) => {
       };
     });
 
-    // Summary counts
     const todayStr = new Date().toISOString().split('T')[0];
     const todayRecords = records.filter(r => r.date === todayStr);
 
@@ -297,7 +407,7 @@ export const getAdminAttendance = async (req, res, next) => {
   }
 };
 
-// 4. LEAVE MANAGEMENT
+// 5. LEAVE MANAGEMENT
 export const getAdminLeaves = async (req, res, next) => {
   try {
     const { status, employeeId } = req.query;
@@ -368,7 +478,7 @@ export const rejectLeave = async (req, res, next) => {
   }
 };
 
-// 5. PAYROLL MANAGEMENT & BULK RUN
+// 6. PAYROLL MANAGEMENT & BULK RUN
 export const getAdminPayroll = async (req, res, next) => {
   try {
     const { monthCode, status } = req.query;
@@ -433,7 +543,7 @@ export const runBulkPayroll = async (req, res, next) => {
   }
 };
 
-// 6. FINANCE DASHBOARD
+// 7. FINANCE DASHBOARD
 export const getFinanceDashboard = async (req, res, next) => {
   try {
     const financeData = dataStore.getFinanceDashboardData();
@@ -446,7 +556,7 @@ export const getFinanceDashboard = async (req, res, next) => {
   }
 };
 
-// 7. TIME MANAGEMENT DASHBOARD
+// 8. TIME MANAGEMENT DASHBOARD
 export const getTimeManagementDashboard = async (req, res, next) => {
   try {
     const timeData = dataStore.getTimeManagementData();
@@ -465,7 +575,7 @@ export const getTimeManagementDashboard = async (req, res, next) => {
   }
 };
 
-// 8. ADMIN REVIEWS
+// 9. ADMIN REVIEWS
 export const getAdminReviews = async (req, res, next) => {
   try {
     const { department, period } = req.query;

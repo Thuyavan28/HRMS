@@ -1,4 +1,4 @@
-import { body, param, query, validationResult } from 'express-validator';
+import { body, query, validationResult } from 'express-validator';
 
 export const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
@@ -13,22 +13,10 @@ export const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-export const registerValidationRules = [
-  body('fullName')
+export const activateValidationRules = [
+  body('token')
     .trim()
-    .notEmpty().withMessage('Full Name is required')
-    .isLength({ min: 2, max: 100 }).withMessage('Full Name must be between 2 and 100 characters'),
-  
-  body('employeeId')
-    .trim()
-    .notEmpty().withMessage('Employee ID is required')
-    .matches(/^[A-Za-z0-9-_]+$/).withMessage('Employee ID can only contain letters, numbers, hyphens, or underscores'),
-
-  body('email')
-    .trim()
-    .notEmpty().withMessage('Work email is required')
-    .isEmail().withMessage('Please provide a valid email address')
-    .normalizeEmail(),
+    .notEmpty().withMessage('Invitation activation token is required'),
 
   body('password')
     .notEmpty().withMessage('Password is required')
@@ -37,9 +25,14 @@ export const registerValidationRules = [
     .matches(/[0-9]/).withMessage('Password must contain at least one number')
     .matches(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/).withMessage('Password must contain at least one special character'),
 
-  body('role')
-    .optional()
-    .isIn(['employee', 'admin']).withMessage('Role must be either employee or admin'),
+  body('confirmPassword')
+    .notEmpty().withMessage('Password confirmation is required')
+    .custom((confirmPassword, { req }) => {
+      if (confirmPassword !== req.body.password) {
+        throw new Error('Passwords do not match');
+      }
+      return true;
+    }),
 
   handleValidationErrors
 ];
