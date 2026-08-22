@@ -230,7 +230,8 @@ export const LeaveManagement = () => {
         filterOptions={[
           { label: 'Pending', value: 'Pending' },
           { label: 'Approved', value: 'Approved' },
-          { label: 'Rejected', value: 'Rejected' }
+          { label: 'Rejected', value: 'Rejected' },
+          { label: 'Cancelled', value: 'Cancelled' }
         ]}
         pageSize={10}
       />

@@ -125,8 +125,8 @@ export const NotificationsPage = () => {
             <div
               key={item.id}
               onClick={() => handleMarkSingleRead(item.id)}
-              className={`p-5 flex items-start gap-4 transition-colors hover:bg-dark-750/50 cursor-pointer ${
-                !item.isRead ? 'bg-teal-500/5' : ''
+              className={`p-5 flex items-start gap-4 transition-colors hover:bg-dark-750/50 cursor-pointer border-l-2 ${
+                !item.isRead ? 'bg-teal-500/5 border-teal-400' : 'border-transparent'
               }`}
             >
               <div className="p-3 rounded-xl bg-dark-850 border border-dark-700 flex-shrink-0">

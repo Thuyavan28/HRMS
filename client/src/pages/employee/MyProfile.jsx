@@ -401,6 +401,19 @@ export const MyProfile = () => {
             </span>
           </div>
 
+          {/* Contact HR Banner (FRONTEND FIX 3) */}
+          <div className="p-3.5 rounded-xl bg-amber-500/8 border border-amber-500/20 flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center flex-shrink-0">
+              <Lock className="w-4 h-4 text-amber-400" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-amber-300">Salary details are managed by HR</p>
+              <p className="text-[11px] text-amber-400/70 mt-0.5">
+                To request a salary revision or correction, please contact your HR Administrator or send an email to <strong>hr@dayflow.com</strong>.
+              </p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Earnings Table */}
             <div className="p-4 rounded-xl bg-dark-850 border border-dark-700 space-y-3">

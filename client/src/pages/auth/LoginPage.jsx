@@ -195,9 +195,9 @@ export const LoginPage = () => {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-semibold text-dark-300">Password</label>
-                <span className="text-[11px] text-teal-400/80 hover:text-teal-300 cursor-pointer">
+                <Link to="/forgot-password" className="text-[11px] text-teal-400/80 hover:text-teal-300 transition-colors">
                   Forgot Password?
-                </span>
+                </Link>
               </div>
               <div className="relative">
                 <Lock className="w-4 h-4 text-dark-400 absolute left-3.5 top-1/2 -translate-y-1/2" />

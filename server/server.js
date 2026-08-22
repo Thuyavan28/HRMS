@@ -38,7 +38,7 @@ app.use(cors({
   origin: CLIENT_URL,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token']
 }));
 
 // 3. Body & Cookie Parsing
@@ -99,6 +99,15 @@ async function startServer() {
     console.error('Failed to start server:', err);
     process.exit(1);
   }
+}
+
+// IMPROVEMENT 5: Validate required env vars before server start
+const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET', 'CLIENT_URL'];
+const missingEnv = REQUIRED_ENV.filter(key => !process.env[key]);
+if (missingEnv.length > 0) {
+  console.error(`\n❌ [Startup Error] Missing required environment variables: ${missingEnv.join(', ')}`);
+  console.error('Please check your server/.env file and restart the server.\n');
+  process.exit(1);
 }
 
 startServer();

@@ -17,8 +17,12 @@ client/dist/
 dist/
 
 # Environment variables
+.env
 .env.local
 .env.*.local
+server/.env
+client/.env
+*.env
 
 # Editor directories
 .vscode/

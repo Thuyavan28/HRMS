@@ -239,6 +239,17 @@ export const initializeDatabase = async () => {
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS password_reset_tokens (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          email VARCHAR(255) NOT NULL,
+          token VARCHAR(255) UNIQUE NOT NULL,
+          expires_at TIMESTAMPTZ NOT NULL,
+          used BOOLEAN NOT NULL DEFAULT FALSE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_reset_tokens_token ON password_reset_tokens(token);
+      CREATE INDEX IF NOT EXISTS idx_reset_tokens_email ON password_reset_tokens(email);
+
       CREATE TABLE IF NOT EXISTS finance_summary (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           total_revenue NUMERIC(15, 2) NOT NULL,
@@ -378,7 +389,6 @@ export const initializeDatabase = async () => {
         INSERT INTO invitations (employee_id, email, full_name, role, token, expires_at, status, created_by)
         VALUES
         ('EMP-1050', 'priya.sharma@dayflow.com', 'Priya Sharma', 'employee', 'demo-invite-token-emp-2026', NOW() + INTERVAL '7 days', 'INVITED', 'Ananya Krishnan (HR Admin)'),
-        ('EMP-1060', 'karthik.vance@dayflow.com', 'Karthik Vance', 'admin', 'demo-invite-token-admin-2026', NOW() + INTERVAL '7 days', 'INVITED', 'Ananya Krishnan (HR Admin)'),
         ('EMP-1099', 'expired.user@dayflow.com', 'Expired User', 'employee', 'demo-invite-token-expired', NOW() - INTERVAL '2 days', 'EXPIRED', 'Ananya Krishnan (HR Admin)');
       `);
 

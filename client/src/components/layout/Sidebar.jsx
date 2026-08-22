@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -19,10 +19,29 @@ import {
   Briefcase
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { notificationService } from '../../services/notificationService';
 
 export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const { user, role } = useAuth();
   const location = useLocation();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (role === 'employee') {
+      const fetchUnread = async () => {
+        try {
+          const res = await notificationService.getMyNotifications();
+          if (res.success && res.data) {
+            const count = (res.data.notifications || []).filter(n => !n.isRead).length;
+            setUnreadCount(count);
+          }
+        } catch (_) {}
+      };
+      fetchUnread();
+      const interval = setInterval(fetchUnread, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [role]);
 
   const employeeNav = [
     { name: 'Dashboard', path: '/employee/dashboard', icon: LayoutDashboard },
@@ -113,7 +132,16 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                     isActive ? 'text-white' : 'text-dark-400 group-hover:text-teal-400'
                   }`}
                 />
-                {!isCollapsed && <span className="truncate">{item.name}</span>}
+                {!isCollapsed && <span className="truncate flex-1">{item.name}</span>}
+
+                {/* Unread notification badge */}
+                {item.path === '/employee/notifications' && unreadCount > 0 && (
+                  <span className={`flex-shrink-0 min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-[10px] font-bold px-1 ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-rose-500 text-white'
+                  }`}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
 
                 {/* Collapsed Tooltip Indicator */}
                 {isCollapsed && (

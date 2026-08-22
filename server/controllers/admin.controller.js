@@ -684,13 +684,36 @@ export const getTimeManagementDashboard = async (req, res, next) => {
   try {
     const timeData = dataStore.getTimeManagementData();
     const allAttendance = dataStore.getAllAttendance();
-    const livePunches = allAttendance.slice(0, 8);
+    const allEmployees = dataStore.getAllEmployees();
+
+    // MISSING 7 FIX: Filter to today's records only
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayAttendance = allAttendance.filter(a => a.date === todayStr);
+
+    const liveCheckInFeed = todayAttendance.map(a => {
+      const emp = allEmployees.find(e => e.employeeId === a.employeeId);
+      return {
+        ...a,
+        employeeName: emp ? emp.fullName : a.employeeId,
+        avatar: emp?.avatar,
+        department: emp?.jobDetails?.department || 'General'
+      };
+    }).sort((a, b) => (b.checkIn || '').localeCompare(a.checkIn || ''));
+
+    const activeEmployees = allEmployees.filter(e => e.status === 'Active').length;
+    const kpis = {
+      presentToday: todayAttendance.filter(a => a.status === 'Present' || a.status === 'Late').length,
+      absentToday: Math.max(0, activeEmployees - todayAttendance.length),
+      lateToday: todayAttendance.filter(a => a.status === 'Late').length,
+      checkedOutCount: todayAttendance.filter(a => a.checkOut).length
+    };
 
     res.status(200).json({
       success: true,
       data: {
         ...timeData,
-        liveCheckInFeed: livePunches
+        todayKpis: kpis,
+        liveCheckInFeed
       }
     });
   } catch (error) {
@@ -741,4 +764,87 @@ export const createAdminReview = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+// MISSING 8: Update an existing review
+export const updateAdminReview = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const review = dataStore.reviews.find(r => r.id === id);
+    if (!review) return res.status(404).json({ success: false, message: 'Review not found.' });
+
+    Object.assign(review, req.body);
+    if (req.body.score !== undefined) {
+      review.rating = req.body.score >= 95 ? 'Exceptional' : req.body.score >= 85 ? 'Exceeds Expectations' : 'Meets Expectations';
+    }
+
+    query(`UPDATE reviews SET score=$1, feedback=$2, strengths=$3, improvements=$4, status=$5 WHERE id::text=$6;`,
+      [review.score, review.feedback, review.strengths, review.improvements, review.status, id]).catch(console.error);
+
+    res.status(200).json({ success: true, message: 'Review updated.', data: review });
+  } catch (error) { next(error); }
+};
+
+// MISSING 8: Delete a review
+export const deleteAdminReview = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const idx = dataStore.reviews.findIndex(r => r.id === id);
+    if (idx === -1) return res.status(404).json({ success: false, message: 'Review not found.' });
+    dataStore.reviews.splice(idx, 1);
+    query(`DELETE FROM reviews WHERE id::text=$1;`, [id]).catch(console.error);
+    res.status(200).json({ success: true, message: 'Review deleted.' });
+  } catch (error) { next(error); }
+};
+
+// MISSING 2: Update employee salary structure
+export const updateEmployeeSalary = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const employee = dataStore.getEmployeeProfile(id) || dataStore.employees.find(e => e.id === id);
+    if (!employee) return res.status(404).json({ success: false, message: 'Employee not found.' });
+
+    const { basic, hra, transport, medical } = req.body;
+    const gross = Number(basic) + Number(hra) + Number(transport) + Number(medical);
+    const taxDeduction = Math.round(gross * 0.20);
+    const pfDeduction = Math.round(Number(basic) * 0.12);
+    const netSalary = gross - taxDeduction - pfDeduction;
+
+    const salaryUpdate = {
+      basic: Number(basic), hra: Number(hra), transport: Number(transport),
+      medical: Number(medical), gross, taxDeduction, pfDeduction, netSalary
+    };
+
+    const emp = dataStore.getEmployeeProfile(employee.employeeId || id);
+    if (emp) emp.salaryStructure = { ...emp.salaryStructure, ...salaryUpdate };
+
+    await query(`UPDATE salary_structures SET basic=$1, hra=$2, transport=$3, medical=$4, gross=$5, tax_deduction=$6, pf_deduction=$7, net_salary=$8, updated_at=NOW() WHERE employee_id=$9;`,
+      [basic, hra, transport, medical, gross, taxDeduction, pfDeduction, netSalary, employee.employeeId || id]);
+
+    res.status(200).json({ success: true, message: 'Salary structure updated.', data: salaryUpdate });
+  } catch (error) { next(error); }
+};
+
+// MISSING 6: Update employee leave balances
+export const updateLeaveBalance = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { annual, sick, monthly, daily, hourly } = req.body;
+    const employee = dataStore.getEmployeeProfile(id) || dataStore.employees.find(e => e.id === id);
+    if (!employee) return res.status(404).json({ success: false, message: 'Employee not found.' });
+
+    const emp = dataStore.getEmployeeProfile(employee.employeeId || id);
+    if (emp && emp.leaveBalances) {
+      if (annual !== undefined) emp.leaveBalances.annual = Number(annual);
+      if (sick !== undefined) emp.leaveBalances.sick = Number(sick);
+      if (monthly !== undefined) emp.leaveBalances.monthly = Number(monthly);
+      if (daily !== undefined) emp.leaveBalances.daily = Number(daily);
+      if (hourly !== undefined) emp.leaveBalances.hourly = Number(hourly);
+    }
+
+    await query(`UPDATE leave_balances SET annual=COALESCE($1,annual), sick=COALESCE($2,sick), monthly=COALESCE($3,monthly), daily=COALESCE($4,daily), hourly=COALESCE($5,hourly), updated_at=NOW() WHERE employee_id=$6;`,
+      [annual ?? null, sick ?? null, monthly ?? null, daily ?? null, hourly ?? null, employee.employeeId || id]);
+
+    res.status(200).json({ success: true, message: 'Leave balances updated.', data: emp?.leaveBalances });
+  } catch (error) { next(error); }
 };

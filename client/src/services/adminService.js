@@ -104,5 +104,25 @@ export const adminService = {
   createReview: async (reviewData) => {
     const response = await api.post('/admin/reviews', reviewData);
     return response.data;
+  },
+
+  updateReview: async (id, reviewData) => {
+    const response = await api.patch(`/admin/reviews/${id}`, reviewData);
+    return response.data;
+  },
+
+  deleteReview: async (id) => {
+    const response = await api.delete(`/admin/reviews/${id}`);
+    return response.data;
+  },
+
+  updateEmployeeSalary: async (id, salaryData) => {
+    const response = await api.patch(`/admin/employees/${id}/salary`, salaryData);
+    return response.data;
+  },
+
+  updateLeaveBalance: async (id, leaveData) => {
+    const response = await api.patch(`/admin/employees/${id}/leave-balance`, leaveData);
+    return response.data;
   }
 };

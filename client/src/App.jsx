@@ -9,6 +9,8 @@ import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { LoginPage } from './pages/auth/LoginPage';
 import { ActivateAccountPage } from './pages/auth/ActivateAccountPage';
 import { VerifyEmailPage } from './pages/auth/VerifyEmailPage';
+import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 
 // Employee Pages
 import { EmployeeDashboard } from './pages/employee/EmployeeDashboard';
@@ -51,6 +53,8 @@ function App() {
             <Route path="/signup" element={<ActivateAccountPage />} />
             <Route path="/register" element={<Navigate to="/activate" replace />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             {/* Root Redirect */}
             <Route path="/" element={<RootRedirect />} />

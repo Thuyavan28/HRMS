@@ -176,3 +176,43 @@ export async function sendReminderEmail({ to, fullName, activationUrl }) {
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * Sends a password reset email with a secure reset link.
+ */
+export async function sendPasswordResetEmail(to, fullName, resetLink) {
+  try {
+    const transport = await getTransporter();
+    const info = await transport.sendMail({
+      from: `"Dayflow HRMS" <${process.env.SMTP_USER || 'no-reply@dayflow.com'}>`,
+      to,
+      subject: 'Reset Your Dayflow Password',
+      html: `
+        <div style="font-family: 'Inter', -apple-system, sans-serif; background: #0A0F1A; color: #E2E8F0; max-width: 600px; margin: 0 auto; border-radius: 16px; overflow: hidden; border: 1px solid #1E293B;">
+          <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #00C896;">Dayflow HRMS</h1>
+            <p style="margin: 4px 0 0; font-size: 12px; color: #64748B; letter-spacing: 0.05em;">HUMAN RESOURCE MANAGEMENT SYSTEM</p>
+          </div>
+          <div style="padding: 32px;">
+            <h2 style="font-size: 20px; font-weight: 600; color: #F8FAFC; margin: 0 0 12px;">Password Reset Request</h2>
+            <p style="color: #94A3B8; margin: 0 0 24px;">Hello <strong style="color: #E2E8F0;">${fullName}</strong>, we received a request to reset your Dayflow account password. Click the button below to set a new password.</p>
+            <a href="${resetLink}" style="display: inline-block; background: #00C896; color: #0A0F1A; text-decoration: none; padding: 14px 28px; border-radius: 10px; font-weight: 700; font-size: 15px; margin-bottom: 24px;">Reset My Password</a>
+            <p style="color: #64748B; font-size: 13px; margin: 16px 0 0;">This link expires in <strong>1 hour</strong>. If you did not request a password reset, please ignore this email — your account remains secure.</p>
+            <p style="color: #475569; font-size: 12px; margin: 8px 0 0; word-break: break-all;">Or copy this link: <a href="${resetLink}" style="color: #00C896;">${resetLink}</a></p>
+          </div>
+          <div style="padding: 16px 32px; border-top: 1px solid #212B3B; text-align: center;">
+            <p style="margin: 0; font-size: 10px; color: #475569;">Dayflow HRMS — This is an automated security email. Do not share the reset link with anyone.</p>
+          </div>
+        </div>
+      `
+    });
+
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    if (previewUrl) console.log(`📧 [Email Reset] Preview URL: ${previewUrl}`);
+    console.log(`📧 [Email] Password reset sent to ${to} | MessageID: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error(`📧 [Email Reset Error] Failed to send to ${to}:`, error.message);
+    return { success: false, error: error.message };
+  }
+}

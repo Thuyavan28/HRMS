@@ -20,7 +20,11 @@ import {
   getFinanceDashboard,
   getTimeManagementDashboard,
   getAdminReviews,
-  createAdminReview
+  createAdminReview,
+  updateAdminReview,
+  deleteAdminReview,
+  updateEmployeeSalary,
+  updateLeaveBalance
 } from '../controllers/admin.controller.js';
 import { authenticateToken, requireRole } from '../middleware/auth.middleware.js';
 import { reviewCreateValidationRules } from '../middleware/validation.middleware.js';
@@ -40,6 +44,8 @@ router.post('/employees', createEmployee);
 router.get('/employees/:id', getEmployeeById);
 router.patch('/employees/:id', updateEmployee);
 router.patch('/employees/:id/status', toggleEmployeeStatus);
+router.patch('/employees/:id/salary', updateEmployeeSalary);        // MISSING 2
+router.patch('/employees/:id/leave-balance', updateLeaveBalance);   // MISSING 6
 router.delete('/employees/:id', deleteEmployee);
 
 // Invitations Management
@@ -67,5 +73,7 @@ router.get('/timemanagement', getTimeManagementDashboard);
 // Reviews
 router.get('/reviews', getAdminReviews);
 router.post('/reviews', reviewCreateValidationRules, createAdminReview);
+router.patch('/reviews/:id', updateAdminReview);   // MISSING 8
+router.delete('/reviews/:id', deleteAdminReview);  // MISSING 8
 
 export default router;

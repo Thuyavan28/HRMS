@@ -297,6 +297,7 @@ export const LeaveRequests = () => {
               <option value="Sick">Sick / Medical Leave</option>
               <option value="Casual">Casual Personal Day</option>
               <option value="Unpaid">Unpaid Leave</option>
+              <option value="Maternity/Paternity">Maternity / Paternity Leave</option>
             </select>
           </div>
 

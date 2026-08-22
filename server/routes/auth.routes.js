@@ -7,7 +7,9 @@ import {
   refresh,
   logout,
   getMe,
-  verifyEmail
+  verifyEmail,
+  forgotPassword,
+  resetPassword
 } from '../controllers/auth.controller.js';
 import { authenticateToken } from '../middleware/auth.middleware.js';
 import { authRateLimiter } from '../middleware/rateLimiter.middleware.js';
@@ -21,10 +23,14 @@ router.post('/activate', authRateLimiter, activateValidationRules, activateAccou
 
 // Authentication
 router.post('/login', authRateLimiter, loginValidationRules, login);
-router.post('/register', authRateLimiter, register);
+router.post('/register', authRateLimiter, activateValidationRules, register); // BUG 3 FIX: Added validation
 router.post('/refresh', refresh);
 router.post('/logout', logout);
 router.get('/me', authenticateToken, getMe);
 router.post('/verify-email', verifyEmail);
+
+// Password Reset (MISSING 1)
+router.post('/forgot-password', authRateLimiter, forgotPassword);
+router.post('/reset-password', authRateLimiter, resetPassword);
 
 export default router;

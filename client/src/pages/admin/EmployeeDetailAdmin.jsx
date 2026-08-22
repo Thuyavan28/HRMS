@@ -11,7 +11,8 @@ import {
   CheckCircle,
   AlertCircle,
   Plus,
-  Trash2
+  Trash2,
+  CalendarCheck
 } from 'lucide-react';
 import { adminService } from '../../services/adminService';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -31,8 +32,11 @@ export const EmployeeDetailAdmin = () => {
   const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingSalary, setSavingSalary] = useState(false);
+  const [savingLeave, setSavingLeave] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [leaveBalance, setLeaveBalance] = useState({ annual: 18, sick: 10, monthly: 2, daily: 5, hourly: 16 });
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -99,6 +103,10 @@ export const EmployeeDetailAdmin = () => {
             netSalary: res.data.salaryStructure?.netSalary || 0
           }
         });
+        // Populate leave balances
+        if (res.data.leaveBalances) {
+          setLeaveBalance(res.data.leaveBalances);
+        }
       }
     } catch (err) {
       toast.error('Failed to load employee details.');
@@ -150,6 +158,35 @@ export const EmployeeDetailAdmin = () => {
       toast.error(err.response?.data?.message || 'Failed to update employee.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveSalary = async () => {
+    try {
+      setSavingSalary(true);
+      const { basic, hra, transport, medical } = formData.salaryStructure;
+      const res = await adminService.updateEmployeeSalary(id, { basic, hra, transport, medical });
+      if (res.success) {
+        toast.success('Salary structure updated and saved to database.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to save salary.');
+    } finally {
+      setSavingSalary(false);
+    }
+  };
+
+  const handleSaveLeaveBalance = async () => {
+    try {
+      setSavingLeave(true);
+      const res = await adminService.updateLeaveBalance(id, leaveBalance);
+      if (res.success) {
+        toast.success('Leave balances updated successfully.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to save leave balances.');
+    } finally {
+      setSavingLeave(false);
     }
   };
 
@@ -268,6 +305,17 @@ export const EmployeeDetailAdmin = () => {
           }`}
         >
           <CreditCard className="w-4 h-4" /> Salary & Compensation
+        </button>
+
+        <button
+          onClick={() => setActiveTab('leaves')}
+          className={`flex items-center gap-2 px-5 py-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+            activeTab === 'leaves'
+              ? 'border-teal-500 text-teal-400 bg-teal-500/5'
+              : 'border-transparent text-dark-300 hover:text-slate-200'
+          }`}
+        >
+          <CalendarCheck className="w-4 h-4" /> Leave Quota
         </button>
 
         <button
@@ -401,71 +449,99 @@ export const EmployeeDetailAdmin = () => {
         </div>
       )}
 
-      {/* Tab 2: Salary Structure (Admin Edit) */}
+      {/* Tab 2: Salary Structure */}
       {activeTab === 'salary' && (
         <div className="card-surface p-6 space-y-5">
-          <h3 className="text-base font-bold text-slate-100">Monthly Compensation Structure & Tax Policy</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-slate-100">Monthly Compensation Structure & Tax Policy</h3>
+            <button
+              type="button"
+              onClick={handleSaveSalary}
+              disabled={savingSalary}
+              className="btn-primary text-xs flex items-center gap-1.5 disabled:opacity-60"
+            >
+              <Save className="w-3.5 h-3.5" />
+              {savingSalary ? 'Saving...' : 'Save Salary'}
+            </button>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-semibold text-dark-300 mb-1.5">Basic Salary (₹)</label>
-              <input
-                type="number"
-                value={formData.salaryStructure.basic}
-                onChange={(e) => handleSalaryChange('basic', e.target.value)}
-                className="input-field"
-              />
+              <input type="number" value={formData.salaryStructure.basic} onChange={(e) => handleSalaryChange('basic', e.target.value)} className="input-field" />
             </div>
-
             <div>
               <label className="block text-xs font-semibold text-dark-300 mb-1.5">HRA Allowance (₹)</label>
-              <input
-                type="number"
-                value={formData.salaryStructure.hra}
-                onChange={(e) => handleSalaryChange('hra', e.target.value)}
-                className="input-field"
-              />
+              <input type="number" value={formData.salaryStructure.hra} onChange={(e) => handleSalaryChange('hra', e.target.value)} className="input-field" />
             </div>
-
             <div>
               <label className="block text-xs font-semibold text-dark-300 mb-1.5">Transport (₹)</label>
-              <input
-                type="number"
-                value={formData.salaryStructure.transport}
-                onChange={(e) => handleSalaryChange('transport', e.target.value)}
-                className="input-field"
-              />
+              <input type="number" value={formData.salaryStructure.transport} onChange={(e) => handleSalaryChange('transport', e.target.value)} className="input-field" />
             </div>
-
             <div>
               <label className="block text-xs font-semibold text-dark-300 mb-1.5">Medical (₹)</label>
-              <input
-                type="number"
-                value={formData.salaryStructure.medical}
-                onChange={(e) => handleSalaryChange('medical', e.target.value)}
-                className="input-field"
-              />
+              <input type="number" value={formData.salaryStructure.medical} onChange={(e) => handleSalaryChange('medical', e.target.value)} className="input-field" />
             </div>
           </div>
-
           <div className="p-4 rounded-xl bg-dark-850 border border-dark-700 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
             <div>
               <span className="text-[11px] text-dark-400 uppercase font-semibold">Total Gross Pay</span>
-              <p className="text-xl font-bold text-slate-100 mt-1">
-                ₹{formData.salaryStructure.gross?.toLocaleString()}
-              </p>
+              <p className="text-xl font-bold text-slate-100 mt-1">₹{formData.salaryStructure.gross?.toLocaleString('en-IN')}</p>
             </div>
             <div>
               <span className="text-[11px] text-dark-400 uppercase font-semibold">Est. Tax & PF</span>
-              <p className="text-xl font-bold text-rose-400 mt-1">
-                -₹{((formData.salaryStructure.taxDeduction || 0) + (formData.salaryStructure.pfDeduction || 0)).toLocaleString()}
-              </p>
+              <p className="text-xl font-bold text-rose-400 mt-1">-₹{((formData.salaryStructure.taxDeduction || 0) + (formData.salaryStructure.pfDeduction || 0)).toLocaleString('en-IN')}</p>
             </div>
             <div>
               <span className="text-[11px] text-dark-400 uppercase font-semibold">Calculated Net Pay</span>
-              <p className="text-xl font-bold text-teal-400 mt-1">
-                ₹{formData.salaryStructure.netSalary?.toLocaleString()}
-              </p>
+              <p className="text-xl font-bold text-teal-400 mt-1">₹{formData.salaryStructure.netSalary?.toLocaleString('en-IN')}</p>
             </div>
+          </div>
+          <p className="text-[11px] text-dark-400">Tax calculated at 20% of gross. PF at 12% of basic. Click "Save Salary" to persist changes to the database.</p>
+        </div>
+      )}
+
+      {/* Tab: Leave Quota (MISSING 6) */}
+      {activeTab === 'leaves' && (
+        <div className="card-surface p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-bold text-slate-100">Annual Leave Quota Management</h3>
+              <p className="text-xs text-dark-400 mt-1">Adjust leave entitlements for this employee. Changes are saved to the database immediately.</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleSaveLeaveBalance}
+              disabled={savingLeave}
+              className="btn-primary text-xs flex items-center gap-1.5 disabled:opacity-60"
+            >
+              <Save className="w-3.5 h-3.5" />
+              {savingLeave ? 'Saving...' : 'Save Leave Quota'}
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {[
+              { key: 'annual', label: 'Annual / Paid Leave', unit: 'days', color: 'text-teal-400' },
+              { key: 'sick', label: 'Sick / Medical Leave', unit: 'days', color: 'text-amber-400' },
+              { key: 'monthly', label: 'Monthly Casual Leave', unit: 'days/mo', color: 'text-sky-400' },
+              { key: 'daily', label: 'Daily Entitlement', unit: 'days', color: 'text-purple-400' },
+              { key: 'hourly', label: 'Hourly Leave (Short Leave)', unit: 'hrs', color: 'text-rose-400' }
+            ].map(({ key, label, unit, color }) => (
+              <div key={key} className="p-4 rounded-xl bg-dark-850 border border-dark-700">
+                <label className="block text-xs font-semibold text-dark-300 mb-1">{label}</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    max="365"
+                    value={leaveBalance[key] ?? 0}
+                    onChange={e => setLeaveBalance({ ...leaveBalance, [key]: Number(e.target.value) })}
+                    className="input-field flex-1"
+                  />
+                  <span className={`text-xs font-semibold ${color} whitespace-nowrap`}>{unit}</span>
+                </div>
+                <p className={`text-xl font-bold ${color} mt-2`}>{leaveBalance[key] ?? 0} <span className="text-xs font-normal text-dark-400">{unit}</span></p>
+              </div>
+            ))}
           </div>
         </div>
       )}

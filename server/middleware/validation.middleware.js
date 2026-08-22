@@ -51,8 +51,8 @@ export const loginValidationRules = [
 export const profileUpdateValidationRules = [
   body('fullName').optional().trim().isLength({ min: 2 }).withMessage('Full Name must be at least 2 characters'),
   body('phone').optional().trim().matches(/^[+0-9\s-()]*$/).withMessage('Invalid phone number format'),
-  body('address').optional().trim().isLength({ max: 200 }).withMessage('Address is too long'),
-  body('emergencyContact').optional().trim().isLength({ max: 100 }).withMessage('Emergency contact is too long'),
+  body('address').optional().trim().escape().isLength({ max: 200 }).withMessage('Address is too long'),
+  body('emergencyContact').optional().trim().escape().isLength({ max: 100 }).withMessage('Emergency contact is too long'),
   body('avatar').optional().trim(),
   handleValidationErrors
 ];
@@ -78,6 +78,7 @@ export const leaveApplyValidationRules = [
 
   body('remarks')
     .trim()
+    .escape()
     .notEmpty().withMessage('Remarks/reason is required')
     .isLength({ min: 5, max: 500 }).withMessage('Remarks must be between 5 and 500 characters'),
 
@@ -88,6 +89,8 @@ export const reviewCreateValidationRules = [
   body('employeeId').notEmpty().withMessage('Employee ID is required'),
   body('score').isInt({ min: 0, max: 100 }).withMessage('Score must be an integer between 0 and 100'),
   body('period').notEmpty().withMessage('Review period is required'),
-  body('feedback').trim().isLength({ min: 10 }).withMessage('Feedback must be at least 10 characters'),
+  body('feedback').trim().escape().isLength({ min: 10 }).withMessage('Feedback must be at least 10 characters'),
+  body('strengths').optional().trim().escape(),
+  body('improvements').optional().trim().escape(),
   handleValidationErrors
 ];

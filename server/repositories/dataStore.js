@@ -748,14 +748,30 @@ class DataStoreService {
       return { record: null, notCheckedIn: true };
     }
 
+    // BUG 2 FIX: Calculate real work hours from check-in time
+    const parseTime = (t) => {
+      const [time, period] = t.split(' ');
+      let [h, m] = time.split(':').map(Number);
+      if (period === 'PM' && h !== 12) h += 12;
+      if (period === 'AM' && h === 12) h = 0;
+      return h * 60 + m;
+    };
+
+    const inMinutes = parseTime(record.checkIn);
+    const outMinutes = now.getHours() * 60 + now.getMinutes();
+    const diffMins = outMinutes - inMinutes;
+    const hours = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    const workHoursStr = diffMins > 0 ? `${hours}h ${mins}m` : 'Less than 1 hour';
+
     record.checkOut = timeStr;
-    record.workHours = '8.5 hrs';
+    record.workHours = workHoursStr;
 
     query(`
       UPDATE attendance
-      SET check_out = $1, work_hours = '8.5 hrs'
-      WHERE employee_id = $2 AND date = $3;
-    `, [timeStr, employeeId, todayStr]).catch(console.error);
+      SET check_out = $1, work_hours = $2
+      WHERE employee_id = $3 AND date = $4;
+    `, [timeStr, workHoursStr, employeeId, todayStr]).catch(console.error);
 
     return { record, notCheckedIn: false };
   }
@@ -825,17 +841,17 @@ class DataStoreService {
   }
 
   cancelLeave(leaveId, employeeId) {
-    const index = this.leaves.findIndex(l => l.id === leaveId);
-    if (index === -1) return { notFound: true };
-
-    const leave = this.leaves[index];
+    // BUG 4 FIX: Update status instead of deleting to preserve audit trail
+    const leave = this.leaves.find(l => l.id === leaveId);
+    if (!leave) return { notFound: true };
     if (leave.employeeId !== employeeId) return { unauthorized: true };
     if (leave.status !== 'Pending') return { notPending: true };
 
-    this.leaves.splice(index, 1);
+    leave.status = 'Cancelled';
+    leave.reviewedAt = new Date().toISOString();
 
     query(`
-      DELETE FROM leaves WHERE id::text = $1 AND employee_id = $2;
+      UPDATE leaves SET status = 'Cancelled', reviewed_at = NOW() WHERE id::text = $1 AND employee_id = $2;
     `, [leaveId, employeeId]).catch(console.error);
 
     return { success: true };
@@ -860,13 +876,30 @@ class DataStoreService {
           emp.leaveBalances.annual = Math.max(0, emp.leaveBalances.annual - leave.duration);
         }
       }
+
+      // BUG 5 FIX: Persist leave balance deduction to DB
+      const columnMap = { paid: 'annual', sick: 'sick', unpaid: 'annual', casual: 'monthly', 'maternity/paternity': 'annual' };
+      const col = columnMap[leave.leaveType.toLowerCase()] || 'annual';
+      query(`UPDATE leave_balances SET ${col} = GREATEST(0, ${col} - $1) WHERE employee_id = $2;`,
+        [leave.duration, leave.employeeId]).catch(console.error);
     }
 
+    // BUG 6 FIX: Removed duplicate WHERE clause
     query(`
       UPDATE leaves
       SET status = $1, admin_comment = $2, reviewed_at = NOW(), reviewed_by = $3
-      WHERE id::text = $4 OR id::text = $4;
+      WHERE id::text = $4;
     `, [status, leave.adminComment, adminName, leaveId]).catch(console.error);
+
+    // MISSING 3: Trigger notification to employee
+    const emp = this.getEmployeeProfile(leave.employeeId);
+    const user = emp ? this.users.find(u => u.employeeId === leave.employeeId) : null;
+    if (user) {
+      const msg = status === 'Approved'
+        ? `Your ${leave.leaveType} leave (${leave.fromDate} to ${leave.toDate}) has been approved by ${adminName}.`
+        : `Your ${leave.leaveType} leave request was rejected. Comment: ${leave.adminComment}`;
+      this.createNotification(user.id, `Leave Request ${status}`, msg, 'leave');
+    }
 
     return leave;
   }
@@ -965,6 +998,13 @@ class DataStoreService {
           monthName, monthCode, sal.basic, sal.hra, sal.transport, sal.medical,
           sal.gross, sal.taxDeduction, sal.pfDeduction, sal.netSalary, newRecord.slipUrl
         ]).catch(console.error);
+
+        // MISSING 3: Notify employee that payslip is ready
+        const payUser = this.users.find(u => u.employeeId === emp.employeeId);
+        if (payUser) {
+          this.createNotification(payUser.id, 'Payslip Ready',
+            `Your payslip for ${monthName} is ready. Net salary: ₹${newRecord.netSalary.toLocaleString('en-IN')}.`, 'payroll');
+        }
       }
     });
 
@@ -1020,6 +1060,13 @@ class DataStoreService {
       newRev.strengths, newRev.improvements, newRev.feedback
     ]).catch(console.error);
 
+    // MISSING 3: Notify employee that review is published
+    const revUser = this.users.find(u => u.employeeId === newRev.employeeId);
+    if (revUser) {
+      this.createNotification(revUser.id, 'Performance Review Published',
+        `Your ${newRev.period} review has been published. Score: ${newRev.score}/100 — ${newRev.rating}.`, 'review');
+    }
+
     return newRev;
   }
 
@@ -1055,6 +1102,20 @@ class DataStoreService {
 
   getTimeManagementData() {
     return this.timeManagement;
+  }
+
+  // MISSING 3: Reusable notification creator
+  createNotification(userId, title, message, type = 'general') {
+    const notif = {
+      id: `ntf-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+      userId, title, message, type,
+      isRead: false,
+      createdAt: new Date().toISOString()
+    };
+    this.notifications.unshift(notif);
+    query(`INSERT INTO notifications (user_id, title, message, type, is_read) VALUES ($1, $2, $3, $4, FALSE);`,
+      [userId, title, message, type]).catch(console.error);
+    return notif;
   }
 }
 

@@ -16,9 +16,18 @@ export const getEmployeeDashboard = async (req, res, next) => {
     const attendanceRecords = dataStore.getAttendanceForEmployee(employeeId);
     const todayRecord = dataStore.getTodayAttendance(employeeId);
 
-    const presentDays = attendanceRecords.filter(a => a.status === 'Present').length;
-    const lateDays = attendanceRecords.filter(a => a.status === 'Late').length;
-    const absentDays = attendanceRecords.filter(a => a.status === 'Absent').length;
+    // BUG 7 FIX: Filter to current month only
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const monthRecords = attendanceRecords.filter(a => {
+      const d = new Date(a.date);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
+
+    const presentDays = monthRecords.filter(a => a.status === 'Present').length;
+    const lateDays = monthRecords.filter(a => a.status === 'Late').length;
+    const absentDays = monthRecords.filter(a => a.status === 'Absent').length;
 
     // Upcoming schedule items
     const upcomingSchedule = [
@@ -52,7 +61,7 @@ export const getEmployeeDashboard = async (req, res, next) => {
       ...recentPayroll.map(p => ({
         id: `act-${p.id}`,
         title: `Salary Credited: ${p.month}`,
-        description: `Net payout of $${p.netSalary.toLocaleString()} processed via ${p.paymentMethod}`,
+        description: `Net payout of ₹${p.netSalary.toLocaleString('en-IN')} processed via ${p.paymentMethod}`,
         time: p.paymentDate,
         icon: 'dollar-sign',
         type: 'payroll'
