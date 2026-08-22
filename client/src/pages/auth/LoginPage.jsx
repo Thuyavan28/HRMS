@@ -25,18 +25,40 @@ export const LoginPage = () => {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
+
+    if (!email.trim()) {
+      const msg = 'Please enter your work email address.';
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
+
+    if (!password) {
+      const msg = 'Please enter your password.';
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
+
     try {
       setLoading(true);
       setError('');
-      const res = await login({ email, password });
+      const res = await login({ email: email.trim(), password });
       if (res.success && res.data) {
         toast.success(`Welcome back, ${res.data.user.fullName}!`);
         const targetRoute = res.data.user.role === 'admin' ? '/admin/dashboard' : '/employee/dashboard';
         navigate(targetRoute, { replace: true });
+      } else {
+        const msg = res.message || 'Authentication failed. Please verify your credentials.';
+        setError(msg);
+        toast.error(msg);
       }
     } catch (err) {
-      const msg = err.response?.data?.message || 'Invalid email or password. Please try again.';
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.errors?.[0]?.message ||
+        'Invalid email or password. Please verify your credentials.';
       setError(msg);
       toast.error(msg);
     } finally {
@@ -52,12 +74,18 @@ export const LoginPage = () => {
       setError('');
       const res = await login({ email: demoEmail, password: demoPassword });
       if (res.success && res.data) {
-        toast.success(`Demo sign-in as ${res.data.user.fullName}`);
+        toast.success(`Signed in as ${res.data.user.fullName} (${res.data.user.role.toUpperCase()})`);
         const targetRoute = res.data.user.role === 'admin' ? '/admin/dashboard' : '/employee/dashboard';
         navigate(targetRoute, { replace: true });
+      } else {
+        const msg = res.message || 'Demo login failed.';
+        setError(msg);
+        toast.error(msg);
       }
     } catch (err) {
-      setError('Failed demo sign-in.');
+      const msg = err.response?.data?.message || 'Demo login failed. Please check credentials.';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -84,7 +112,7 @@ export const LoginPage = () => {
           <div className="mb-6">
             <h2 className="text-xl font-bold text-slate-100">Sign In to Your Workspace</h2>
             <p className="text-xs text-dark-300 mt-1">
-              Enter your work email and password to access your HR portal
+              Enter your corporate email and password to access your HR portal
             </p>
           </div>
 
@@ -105,9 +133,12 @@ export const LoginPage = () => {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (error) setError('');
+                  }}
                   placeholder="name@company.com"
-                  className="input-field pl-10"
+                  className="input-field pl-10 text-xs"
                   required
                 />
               </div>
@@ -125,9 +156,12 @@ export const LoginPage = () => {
                 <input
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) setError('');
+                  }}
                   placeholder="••••••••••••"
-                  className="input-field pl-10"
+                  className="input-field pl-10 text-xs"
                   required
                 />
               </div>
@@ -138,7 +172,7 @@ export const LoginPage = () => {
               disabled={loading}
               className="w-full btn-primary py-2.5 text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-glow-teal-sm"
             >
-              <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
+              <span>{loading ? 'Verifying in Database...' : 'Sign In'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
@@ -154,10 +188,10 @@ export const LoginPage = () => {
                 </div>
               </div>
               <Link
-                to="/activate"
+                to="/signup"
                 className="px-2.5 py-1 rounded-lg bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 border border-teal-500/30 text-xs font-bold whitespace-nowrap"
               >
-                Activate Account →
+                Sign Up / Activate →
               </Link>
             </div>
           </div>

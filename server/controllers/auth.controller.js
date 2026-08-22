@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { query } from '../config/db.js';
 import { dataStore } from '../repositories/dataStore.js';
 import { generateTokens, setAuthCookies, clearAuthCookies } from '../utils/token.utils.js';
 
@@ -171,11 +172,53 @@ export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const user = dataStore.findUserByEmail(email);
+    if (!email || !email.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter your work email address.'
+      });
+    }
+
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter your password.'
+      });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    let user = dataStore.findUserByEmail(cleanEmail);
+
+    // Fallback direct check against Neon DB if not in memory
+    if (!user) {
+      try {
+        const dbRes = await query('SELECT * FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1;', [cleanEmail]);
+        if (dbRes.rows.length > 0) {
+          const r = dbRes.rows[0];
+          user = {
+            id: r.id,
+            employeeId: r.employee_id,
+            email: r.email,
+            fullName: r.full_name,
+            passwordHash: r.password_hash,
+            role: r.role,
+            status: r.status,
+            isVerified: r.is_verified,
+            avatar: r.avatar,
+            createdAt: r.created_at,
+            lastLoginAt: r.last_login_at
+          };
+          dataStore.users.push(user);
+        }
+      } catch (dbErr) {
+        console.error('Database login check error:', dbErr.message);
+      }
+    }
+
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password. Please check your credentials.'
+        message: 'No account registered with this email. Please check your email or activate your HR invitation link.'
       });
     }
 
@@ -183,7 +226,7 @@ export const login = async (req, res, next) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password. Please check your credentials.'
+        message: 'Incorrect password. Please verify your password and try again.'
       });
     }
 
