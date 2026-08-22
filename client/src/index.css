@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    border-color: #212B3B;
+  }
+  body {
+    background-color: #0D1117;
+    color: #F1F5F9;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0D1117;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #212B3B;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00C896;
+}
+
+/* Glassmorphic and Card Utility Classes */
+@layer components {
+  .card-surface {
+    @apply bg-dark-800 border border-dark-700 rounded-xl shadow-card-dark transition-all duration-200;
+  }
+  
+  .card-surface-hover {
+    @apply bg-dark-800 border border-dark-700 hover:border-dark-600 rounded-xl shadow-card-dark transition-all duration-200;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-teal-500 hover:bg-teal-600 text-white font-medium shadow-glow-teal-sm hover:shadow-glow-teal transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-dark-700 hover:bg-dark-600 text-slate-200 font-medium border border-dark-600 transition-all duration-200 disabled:opacity-50 cursor-pointer;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 font-medium transition-all duration-200 cursor-pointer;
+  }
+
+  .input-field {
+    @apply w-full px-3.5 py-2.5 bg-dark-850 border border-dark-700 rounded-lg text-slate-100 placeholder-dark-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors text-sm;
+  }
+}
+
+/* Pulse Glow Keyframes */
+@keyframes soft-pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(0, 200, 150, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(0, 200, 150, 0.45);
+  }
+}
+
+.pulse-glow {
+  animation: soft-pulse 3s infinite ease-in-out;
+}
