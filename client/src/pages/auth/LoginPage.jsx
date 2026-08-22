@@ -126,18 +126,18 @@ export const LoginPage = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                Work Email Address
+                Work Email Address or Employee ID
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-dark-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
                     if (error) setError('');
                   }}
-                  placeholder="user@email.com"
+                  placeholder="e.g. user@email.com or EMP-001"
                   className="input-field pl-10 text-xs"
                   required
                 />

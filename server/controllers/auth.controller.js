@@ -175,7 +175,7 @@ export const login = async (req, res, next) => {
     if (!email || !email.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Please enter your work email address.'
+        message: 'Please enter your work email or employee ID.'
       });
     }
 
@@ -186,13 +186,19 @@ export const login = async (req, res, next) => {
       });
     }
 
-    const cleanEmail = email.trim().toLowerCase();
-    let user = dataStore.findUserByEmail(cleanEmail);
+    const inputIdentifier = email.trim();
+    const cleanLower = inputIdentifier.toLowerCase();
+    const cleanUpper = inputIdentifier.toUpperCase();
 
-    // Fallback direct check against Neon DB if not in memory
+    let user = dataStore.findUserByEmail(cleanLower) || dataStore.findUserByEmployeeId(cleanUpper);
+
+    // Direct check in Neon DB if not found in memory
     if (!user) {
       try {
-        const dbRes = await query('SELECT * FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1;', [cleanEmail]);
+        const dbRes = await query(
+          'SELECT * FROM users WHERE LOWER(email) = LOWER($1) OR UPPER(employee_id) = UPPER($1) LIMIT 1;',
+          [inputIdentifier]
+        );
         if (dbRes.rows.length > 0) {
           const r = dbRes.rows[0];
           user = {
@@ -211,14 +217,14 @@ export const login = async (req, res, next) => {
           dataStore.users.push(user);
         }
       } catch (dbErr) {
-        console.error('Database login check error:', dbErr.message);
+        console.error('Database login lookup error:', dbErr.message);
       }
     }
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'No account registered with this email. Please check your email or activate your HR invitation link.'
+        message: 'User record not found in database.'
       });
     }
 
@@ -226,7 +232,7 @@ export const login = async (req, res, next) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Incorrect password. Please verify your password and try again.'
+        message: 'Incorrect password. Please verify and try again.'
       });
     }
 
