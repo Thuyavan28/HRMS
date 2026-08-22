@@ -434,7 +434,9 @@ export const forgotPassword = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'If that email is registered, you will receive a reset link shortly.'
+      message: 'If that email is registered, you will receive a reset link shortly.',
+      resetLink,
+      token: resetToken
     });
   } catch (error) {
     next(error);
@@ -453,6 +455,8 @@ export const resetPassword = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Token and new password are required.' });
     }
 
+    const cleanToken = token.trim();
+
     // Validate password strength
     const strongPassword = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
     if (!strongPassword.test(password)) {
@@ -465,7 +469,7 @@ export const resetPassword = async (req, res, next) => {
     // Look up the reset token
     const tokenResult = await query(
       'SELECT * FROM password_reset_tokens WHERE token = $1 AND used = FALSE AND expires_at > NOW() LIMIT 1;',
-      [token]
+      [cleanToken]
     );
 
     if (tokenResult.rows.length === 0) {
@@ -480,11 +484,17 @@ export const resetPassword = async (req, res, next) => {
     // Hash new password
     const passwordHash = await bcrypt.hash(password, 12);
 
-    // Update user password
+    // Update user password in database
     await query('UPDATE users SET password_hash = $1 WHERE email = $2;', [passwordHash, resetRecord.email]);
 
+    // Update in-memory user cache
+    const inMemUser = dataStore.findUserByEmail(resetRecord.email);
+    if (inMemUser) {
+      inMemUser.passwordHash = passwordHash;
+    }
+
     // Mark token as used
-    await query('UPDATE password_reset_tokens SET used = TRUE WHERE token = $1;', [token]);
+    await query('UPDATE password_reset_tokens SET used = TRUE WHERE token = $1;', [cleanToken]);
 
     res.status(200).json({
       success: true,

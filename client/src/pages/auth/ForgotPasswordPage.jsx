@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
@@ -7,6 +7,7 @@ export const ForgotPasswordPage = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [resetToken, setResetToken] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,8 +21,12 @@ export const ForgotPasswordPage = () => {
         body: JSON.stringify({ email: email.trim() })
       });
       const data = await res.json();
-      if (data.success) { setSuccess(true); }
-      else { setError(data.message || 'Something went wrong. Please try again.'); }
+      if (data.success) {
+        setSuccess(true);
+        if (data.token) setResetToken(data.token);
+      } else {
+        setError(data.message || 'Something went wrong. Please try again.');
+      }
     } catch (err) {
       setError('Network error. Please check your connection and try again.');
     } finally {
@@ -62,19 +67,36 @@ export const ForgotPasswordPage = () => {
                       <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your.name@company.com" className="w-full bg-dark-800 border border-dark-600 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-dark-500 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/30 transition-all" disabled={loading} />
                     </div>
                   </div>
-                  <button type="submit" disabled={loading} className="w-full bg-teal-500 hover:bg-teal-400 text-dark-900 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed mt-2">
+                  <button type="submit" disabled={loading} className="w-full bg-teal-500 hover:bg-teal-400 text-dark-900 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed mt-2 cursor-pointer shadow-glow-teal-sm">
                     {loading ? (<><Loader2 className="w-4 h-4 animate-spin" /><span>Sending Reset Link...</span></>) : <span>Send Reset Link</span>}
                   </button>
                 </form>
               </>
             ) : (
-              <div className="text-center py-4">
-                <div className="w-16 h-16 bg-teal-500/15 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="text-center py-4 space-y-4">
+                <div className="w-16 h-16 bg-teal-500/15 rounded-full flex items-center justify-center mx-auto mb-2">
                   <CheckCircle className="w-8 h-8 text-teal-400" />
                 </div>
-                <h2 className="text-xl font-bold text-white mb-2">Check Your Email</h2>
-                <p className="text-dark-400 text-sm leading-relaxed">If <strong className="text-teal-400">{email}</strong> is registered in Dayflow, you will receive a password reset link within a few minutes.</p>
-                <p className="text-dark-500 text-xs mt-4">Didn't receive it? Check your spam folder or wait a few minutes and try again.</p>
+                <div>
+                  <h2 className="text-xl font-bold text-white mb-1">Reset Link Generated!</h2>
+                  <p className="text-dark-400 text-sm leading-relaxed">
+                    A password reset link has been dispatched to <strong className="text-teal-400">{email}</strong>.
+                  </p>
+                </div>
+
+                {resetToken && (
+                  <div className="pt-2">
+                    <Link
+                      to={`/reset-password?token=${resetToken}`}
+                      className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-teal-500 hover:bg-teal-400 text-dark-900 font-bold text-sm transition-all shadow-glow-teal-sm"
+                    >
+                      <span>Proceed to Set New Password</span>
+                      <ArrowLeft className="w-4 h-4 rotate-180" />
+                    </Link>
+                  </div>
+                )}
+
+                <p className="text-dark-500 text-xs pt-1">You can also check your email inbox to open the reset link.</p>
               </div>
             )}
             <div className="mt-6 pt-5 border-t border-dark-700 text-center">

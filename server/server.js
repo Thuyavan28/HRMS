@@ -79,25 +79,35 @@ app.use('/api/admin', adminRoutes);
 app.use(notFoundHandler);
 app.use(globalErrorHandler);
 
-// Start server & initialize Neon DB
-async function startServer() {
-  try {
-    // 1. Initialize Neon DB Tables & Schema
-    await initializeDatabase();
+// Start server & initialize Neon DB with automatic connection retry
+async function startServer(retries = 5, delayMs = 3000) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`📡 [Database] Initializing connection (attempt ${attempt}/${retries})...`);
+      // 1. Initialize Neon DB Tables & Schema
+      await initializeDatabase();
 
-    // 2. Sync in-memory repositories with live Neon DB data
-    await dataStore.syncFromPostgres();
+      // 2. Sync in-memory repositories with live Neon DB data
+      await dataStore.syncFromPostgres();
 
-    // 3. Start Express server
-    app.listen(PORT, () => {
-      console.log(`\n🚀 [Dayflow Server] REST API listening on http://localhost:${PORT}`);
-      console.log(`🐘 [Neon DB] Connected to PostgreSQL instance`);
-      console.log(`🌐 Allowed Client Origin: ${CLIENT_URL}`);
-      console.log(`🔒 Authentication: JWT with HTTP-only Cookies\n`);
-    });
-  } catch (err) {
-    console.error('Failed to start server:', err);
-    process.exit(1);
+      // 3. Start Express server
+      app.listen(PORT, () => {
+        console.log(`\n🚀 [Dayflow Server] REST API listening on http://localhost:${PORT}`);
+        console.log(`🐘 [Neon DB] Connected to PostgreSQL instance`);
+        console.log(`🌐 Allowed Client Origin: ${CLIENT_URL}`);
+        console.log(`🔒 Authentication: JWT with HTTP-only Cookies\n`);
+      });
+      return;
+    } catch (err) {
+      console.error(`⚠️ [Connection Attempt ${attempt} Failed]:`, err.message || err);
+      if (attempt < retries) {
+        console.log(`⏳ Retrying in ${delayMs / 1000}s...`);
+        await new Promise(r => setTimeout(r, delayMs));
+      } else {
+        console.error('❌ Failed to connect to database after all retries:', err);
+        process.exit(1);
+      }
+    }
   }
 }
 
