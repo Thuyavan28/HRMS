@@ -220,66 +220,6 @@ export const LoginPage = () => {
             </button>
           </form>
 
-          {/* Invitation Onboarding Banner */}
-          <div className="mt-6 pt-5 border-t border-dark-700">
-            <div className="p-3.5 rounded-xl bg-dark-850 border border-dark-700 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <KeyRound className="w-4 h-4 text-teal-400 flex-shrink-0" />
-                <div className="text-[11px]">
-                  <span className="font-semibold text-slate-200 block">New team member?</span>
-                  <span className="text-dark-400">Received an HR invitation link?</span>
-                </div>
-              </div>
-              <Link
-                to="/signup"
-                className="px-2.5 py-1 rounded-lg bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 border border-teal-500/30 text-xs font-bold whitespace-nowrap"
-              >
-                Sign Up / Activate →
-              </Link>
-            </div>
-          </div>
-
-          {/* Quick Demo Logins Section */}
-          <div className="mt-6 pt-5 border-t border-dark-700 space-y-2">
-            <div className="flex items-center gap-1.5 text-dark-400 text-[11px] font-semibold uppercase tracking-wider mb-2">
-              <Sparkles className="w-3.5 h-3.5 text-teal-400" />
-              <span>Instant Demo Credentials</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin('admin@dayflow.com', 'Admin@1234')}
-                className="p-2 rounded-xl bg-dark-850 hover:bg-dark-750 border border-dark-700 text-left transition-all group cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-amber-400" />
-                  <div>
-                    <p className="text-xs font-bold text-slate-200 group-hover:text-amber-400">
-                      Ananya Krishnan
-                    </p>
-                    <p className="text-[10px] text-dark-400 font-mono">HR Admin Role</p>
-                  </div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin('alex.morgan@dayflow.com', 'Employee@1234')}
-                className="p-2 rounded-xl bg-dark-850 hover:bg-dark-750 border border-dark-700 text-left transition-all group cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <UserCheck className="w-4 h-4 text-teal-400" />
-                  <div>
-                    <p className="text-xs font-bold text-slate-200 group-hover:text-teal-400">
-                      Arjun Sharma
-                    </p>
-                    <p className="text-[10px] text-dark-400 font-mono">Employee Role</p>
-                  </div>
-                </div>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>

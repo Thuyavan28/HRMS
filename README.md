@@ -1,129 +1,130 @@
-# 🌟 Dayflow — Human Resource Management System (HRMS)
+# 🌟 Dayflow HRMS (Human Resource Management System)
 
-> *"Every workday, perfectly aligned."*
+> **"Every workday, perfectly aligned."**
 
-Dayflow is a modern, dark-themed, enterprise-grade HR Management System built with a pixel-perfect design. It features a complete dual-portal architecture for **Employees** and **HR Administrators**, powered by real-time REST API endpoints, JWT authentication with HTTP-only cookies, role-based access control (RBAC), and interactive telemetry charts.
-
----
-
-## ✨ Features Overview
-
-### 👤 Employee Self-Service Portal
-- **Interactive Dashboard**: Real-time greeting, live punch clock widget (Check-in/Check-out), attendance KPI summary, 5 leave quota balance cards, upcoming schedule, and real-time activity feed.
-- **My Profile**: Editable personal details and avatar (`PATCH /api/employee/profile`), with locked job details, salary structure, and verified documents.
-- **My Attendance**: Daily clock-in/out tracking with toggleable **Weekly Table View** and **Monthly Calendar Grid View**.
-- **Leave Requests**: Dynamic leave application form with auto-calculated calendar duration, leave quota badges, history table, and cancellation for pending requests.
-- **My Payroll & Payslips**: Itemized salary breakdown (Basic, HRA, Transport, Medical, Gross, Tax, PF, Net) and one-click PDF Payslip download via `PDFKit`.
-- **Performance Reviews**: Radial performance gauge, historical appraisal scores, and expandable manager feedback.
-- **Notifications Center**: Real-time alerts, unread badges, filter by category, and "Mark All Read" action.
-
-### 🛡️ HR Administrator Portal
-- **Admin Dashboard**: Workforce KPI cards (Total Employees, Payrolls, Turnover Rate, Job Applicants), radial Employee Satisfaction Gauge, Team KPI Line Chart, Employment Status Bar Chart, and Recent Employee directory.
-- **Employee Directory & Management**: Searchable and filterable employee table, Add New Employee modal, and status toggling (Active / Deactivated).
-- **Administrative Profile Editor**: Full editing access to all fields (Job Details, Grade, Compensation, Deductions, Documents).
-- **Attendance Management**: Company-wide punch register, filters by employee/date/status, and weekly punch intensity heatmap.
-- **Leave Management**: Filterable leave request tabs (All / Pending / Approved / Rejected) with inline Approve / Reject dialogs and custom manager remarks.
-- **Payroll Management & Bulk Run**: Monthly compensation ledger, salary structure adjustment modal, "Mark as Processed" action, and automated bulk payslip batch generation engine with live progress logs.
-- **Finance Analytics**: Cash Flow area chart, Expense Allocation donut chart, department budget utilization tracking, and ledger transactions.
-- **Time Management Dashboard**: Heatmap telemetry, active shift schedule rosters, overtime distribution, and live check-in/out feed.
-- **Appraisal Management**: Company-wide performance review register and "Add Performance Review" modal.
+Dayflow is a modern, comprehensive, and highly aesthetic Human Resource Management System (HRMS) designed to streamline employee onboarding, attendance tracking, payroll management, and overall HR operations. Built with a robust full-stack architecture, Dayflow ensures security, scalability, and an intuitive user experience.
 
 ---
 
-## 🛠️ Tech Stack
+## 🚀 Key Features & Working Flow
 
-- **Frontend**: React 18, Tailwind CSS, Recharts, Lucide Icons, Axios, React Router v7
-- **Backend**: Node.js, Express.js (REST API), JWT, Bcrypt.js, Helmet.js, Express Validator, Express Rate Limit, Cookie Parser, Morgan, PDFKit
-- **Security**: JWT Access Tokens (15 min) + Refresh Tokens (7 days) in HTTP-only cookies, Bcrypt password hashing (12 salt rounds), strict RBAC guards on both frontend and backend, rate limiting on auth routes.
+### 1. 🔐 Secure & Exclusive Onboarding
+Dayflow enforces a strict invitation-only onboarding process to maintain enterprise security.
+- **HR Action:** The HR Admin logs into the portal and navigates to the Employee Management dashboard.
+- **Invitation Creation:** The admin creates a new employee profile (Name, Role, and Email) and generates an Employee ID.
+- **Email Delivery:** The system automatically sends a secure, tokenized invitation link to the new employee's email address using a configured SMTP server.
+- **Employee Activation:** The employee clicks the link, which redirects them to a secure signup page. Here, their details are pre-filled (read-only), and they only need to set their secure password to activate their account.
+
+### 2. 👥 Employee Management Dashboard
+- **Directory:** View all active and deactivated employees in a clean, searchable, and filterable table.
+- **Lifecycle Management:** Edit employee details, manage roles, or securely deactivate/delete employees (cascading deletes for associated records like payroll and attendance).
+- **Auto ID Generation:** Smart logic to auto-generate unique `EMP-XXX` IDs avoiding database conflicts.
+
+### 3. 🕒 Time & Attendance Tracking
+- Employees can log their daily attendance.
+- HR can monitor check-ins, check-outs, and overall hours worked through the Time Management Dashboard.
+
+### 4. 💰 Payroll & Finance
+- **Automated Payroll Runs:** HR can generate payroll for employees based on attendance and roles.
+- **PDF Payslips:** Employees can view and download pixel-perfect, professionally formatted PDF payslips directly from their portal.
+- **Finance Overview:** Visual charts (using modern visualization libraries) to track company expenses, cash flow, and salary distributions.
+
+### 5. 🏖️ Leave Management
+- Employees can request time off via their dashboard.
+- HR receives real-time notifications and can approve or reject leave requests.
 
 ---
 
-## 🚀 Getting Started
+## 🛠️ Technology Stack
 
-### 1. Prerequisites
-- [Node.js](https://nodejs.org/) (v18 or higher)
-- [Git](https://git-scm.com/)
+**Frontend:**
+- **React.js (Vite):** Lightning-fast development environment and optimized production builds.
+- **Tailwind CSS / Vanilla CSS:** Custom, highly aesthetic UI with glassmorphism, dynamic hover effects, and modern styling.
+- **React Router:** For seamless single-page application (SPA) navigation.
 
-### 2. Installation
+**Backend:**
+- **Node.js & Express.js:** Scalable and robust REST API architecture.
+- **Nodemailer:** Handles all outgoing SMTP email communications (Invitations, Password Resets).
+- **PDFKit:** Generates high-quality, perfectly aligned PDF documents (Payslips).
+- **JWT (JSON Web Tokens):** Secure, HTTP-only cookie-based authentication.
 
-Clone the repository and install all dependencies:
+**Database:**
+- **PostgreSQL (Neon DB):** Cloud-native, serverless PostgreSQL for reliable and fast data storage.
+- **pg-pool:** Efficient database connection pooling.
 
-```bash
-# Clone repository
-git clone https://github.com/Thuyavan28/HRMS.git
-cd HRMS
+---
 
-# Install root, backend, and frontend dependencies
-npm run install:all
-```
+## ⚙️ Environment Configuration
 
-### 3. Environment Configuration
-
-The backend comes pre-configured with a `.env` file in the `/server` directory. You can adjust the configuration if needed:
+To run this project locally, you need to configure the following environment variables in your `server/.env` file:
 
 ```env
+# Server Config
 PORT=5000
 NODE_ENV=development
 CLIENT_URL=http://localhost:5173
-JWT_SECRET=dayflow_super_secret_jwt_access_token_key_2026_!@#
-JWT_REFRESH_SECRET=dayflow_super_secret_jwt_refresh_token_key_2026_$%^
-JWT_ACCESS_EXPIRES_IN=15m
+
+# Database (Neon PostgreSQL)
+DATABASE_URL=postgresql://user:password@endpoint.aws.neon.tech/dbname?sslmode=require
+
+# Authentication Secrets
+JWT_SECRET=your_super_secret_jwt_key
+JWT_EXPIRES_IN=1d
+JWT_REFRESH_SECRET=your_super_secret_refresh_key
 JWT_REFRESH_EXPIRES_IN=7d
 COOKIE_SECURE=false
+
+# Gmail SMTP (For Email Invitations)
+SMTP_USER=your.email@gmail.com
+SMTP_PASS=your_16_character_app_password
+```
+*(Note: You **must** use a Google App Password for `SMTP_PASS`, not your regular Gmail login password).*
+
+---
+
+## 💻 Installation & Setup
+
+Follow these steps to get the system running locally from start to finish:
+
+### 1. Clone & Install Dependencies
+Open two separate terminal windows for the frontend and backend.
+
+**Terminal 1 (Backend):**
+```bash
+cd server
+npm install
 ```
 
-### 4. Running the Application
-
-Run both the backend REST API server and the frontend client concurrently with a single command:
-
+**Terminal 2 (Frontend):**
 ```bash
+cd client
+npm install
+```
+
+### 2. Run the Application
+
+**Terminal 1 (Backend):**
+```bash
+cd server
+node server.js
+# Or use nodemon for development: npm run dev
+```
+*Expected Output: `✅ [Neon DB] Database initialized and synchronized successfully!` and `🚀 [Dayflow Server] REST API listening on http://localhost:5000`*
+
+**Terminal 2 (Frontend):**
+```bash
+cd client
 npm run dev
 ```
-
-- **Frontend**: [http://localhost:5173](http://localhost:5173)
-- **Backend API**: [http://localhost:5000](http://localhost:5000)
+*Expected Output: Your Vite server will start on `http://localhost:5173`.*
 
 ---
 
-## 🔑 Demo Accounts
-
-For immediate testing, quick-login demo buttons are available on the Sign In page, or you can use these credentials:
-
-| Role | Email | Password |
-|---|---|---|
-| **HR Administrator** | `admin@dayflow.com` | `Admin@1234` |
-| **Employee** | `alex.morgan@dayflow.com` | `Employee@1234` |
+## 🔒 Security Best Practices Implemented
+1. **No Manual Signups:** Prevents unauthorized users from creating accounts.
+2. **HTTP-Only Cookies:** Protects JWT tokens from Cross-Site Scripting (XSS) attacks.
+3. **Cascading Database Deletions:** Ensures no orphaned data is left behind when an employee is removed.
+4. **Environment Isolation:** Sensitive SMTP and Database credentials are strictly kept out of source code.
 
 ---
-
-## 📁 Repository Structure
-
-```
-├── client/                     # Vite + React + Tailwind Frontend
-│   ├── src/
-│   │   ├── components/         # Common UI, layout, charts (Recharts)
-│   │   ├── context/            # AuthContext, ToastContext
-│   │   ├── pages/              # Employee and HR Admin portal pages
-│   │   ├── services/           # Axios API modules with auto-refresh interceptors
-│   │   └── utils/
-│   ├── tailwind.config.js      # Custom Dayflow dark navy & teal design tokens
-│   └── package.json
-│
-├── server/                     # Node.js + Express REST API Backend
-│   ├── controllers/            # Business logic controllers
-│   ├── middleware/             # Auth, RBAC, validator, rate-limiting, error handler
-│   ├── models/ & repositories/ # DB-agnostic data store with enterprise seed data
-│   ├── routes/                 # Express API routes
-│   ├── utils/                  # Token helpers, PDF payslip generator
-│   └── server.js               # Main Express entry point
-│
-├── .gitignore
-├── README.md
-└── package.json                # Root concurrent scripts
-```
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License.
+*Built with passion for modern HR Management.*
