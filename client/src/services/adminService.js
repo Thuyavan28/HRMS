@@ -31,6 +31,11 @@ export const adminService = {
     return response.data;
   },
 
+  deleteEmployee: async (id) => {
+    const response = await api.delete(`/admin/employees/${id}`);
+    return response.data;
+  },
+
   getInvitations: async () => {
     const response = await api.get('/admin/invitations');
     return response.data;

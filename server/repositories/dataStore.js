@@ -621,6 +621,37 @@ class DataStoreService {
     return updated;
   }
 
+  deleteEmployee(employeeId, email) {
+    const targetEmpId = employeeId ? employeeId.toUpperCase() : '';
+    const targetEmail = email ? email.toLowerCase() : '';
+
+    // Remove from employees array
+    this.employees = this.employees.filter(e => 
+      e.employeeId.toUpperCase() !== targetEmpId && 
+      (!targetEmail || e.email.toLowerCase() !== targetEmail)
+    );
+
+    // Remove associated user
+    this.users = this.users.filter(u => 
+      (u.employeeId && u.employeeId.toUpperCase() === targetEmpId ? false : true) &&
+      (!targetEmail || u.email.toLowerCase() !== targetEmail)
+    );
+
+    // Remove associated invitations
+    this.invitations = this.invitations.filter(i => 
+      (i.employeeId && i.employeeId.toUpperCase() === targetEmpId ? false : true) &&
+      (!targetEmail || i.email.toLowerCase() !== targetEmail)
+    );
+
+    // Remove associated attendance, leaves, payroll, reviews
+    this.attendance = this.attendance.filter(a => a.employeeId && a.employeeId.toUpperCase() !== targetEmpId);
+    this.leaves = this.leaves.filter(l => l.employeeId && l.employeeId.toUpperCase() !== targetEmpId);
+    this.payroll = this.payroll.filter(p => p.employeeId && p.employeeId.toUpperCase() !== targetEmpId);
+    this.reviews = this.reviews.filter(r => r.employeeId && r.employeeId.toUpperCase() !== targetEmpId);
+
+    return true;
+  }
+
   getAllEmployees(queryFilter = {}) {
     let list = [...this.employees];
 

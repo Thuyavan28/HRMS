@@ -9,7 +9,8 @@ import {
   ShieldCheck,
   UserCheck,
   KeyRound,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -19,6 +20,7 @@ export const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loadingStep, setLoadingStep] = useState('');
 
   const { login } = useAuth();
   const toast = useToast();
@@ -44,9 +46,22 @@ export const LoginPage = () => {
     try {
       setLoading(true);
       setError('');
+      setLoadingStep('Connecting to database...');
+      
+      // Simulate step progression for visual feedback
+      const stepTimer1 = setTimeout(() => setLoadingStep('Verifying credentials...'), 800);
+      const stepTimer2 = setTimeout(() => setLoadingStep('Authenticating session...'), 2000);
+      
       const res = await login({ email: email.trim(), password });
+      
+      clearTimeout(stepTimer1);
+      clearTimeout(stepTimer2);
+      
       if (res.success && res.data) {
+        setLoadingStep('Welcome! Redirecting to dashboard...');
         toast.success(`Welcome back, ${res.data.user.fullName}!`);
+        // Brief delay to show success state
+        await new Promise(r => setTimeout(r, 600));
         const targetRoute = res.data.user.role === 'admin' ? '/admin/dashboard' : '/employee/dashboard';
         navigate(targetRoute, { replace: true });
       } else {
@@ -63,6 +78,7 @@ export const LoginPage = () => {
       toast.error(msg);
     } finally {
       setLoading(false);
+      setLoadingStep('');
     }
   };
 
@@ -72,9 +88,16 @@ export const LoginPage = () => {
     try {
       setLoading(true);
       setError('');
+      setLoadingStep('Loading demo credentials...');
+      const stepTimer = setTimeout(() => setLoadingStep('Authenticating demo session...'), 800);
+      
       const res = await login({ email: demoEmail, password: demoPassword });
+      clearTimeout(stepTimer);
+      
       if (res.success && res.data) {
+        setLoadingStep(`Signed in as ${res.data.user.fullName}!`);
         toast.success(`Signed in as ${res.data.user.fullName} (${res.data.user.role.toUpperCase()})`);
+        await new Promise(r => setTimeout(r, 600));
         const targetRoute = res.data.user.role === 'admin' ? '/admin/dashboard' : '/employee/dashboard';
         navigate(targetRoute, { replace: true });
       } else {
@@ -88,11 +111,31 @@ export const LoginPage = () => {
       toast.error(msg);
     } finally {
       setLoading(false);
+      setLoadingStep('');
     }
   };
 
   return (
     <div className="min-h-screen bg-dark-900 flex flex-col justify-center items-center p-4 relative overflow-hidden">
+      {/* Full-Screen Loader Overlay */}
+      {loading && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-dark-900/95 backdrop-blur-sm auth-loader-overlay">
+          <div className="relative flex items-center justify-center mb-6">
+            <div className="auth-loader-ring" />
+            <div className="auth-loader-spinner" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-slate-200 mb-1.5">{loadingStep || 'Authenticating...'}</p>
+            <div className="flex items-center justify-center gap-1 text-teal-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400 auth-dot-1" />
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400 auth-dot-2" />
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400 auth-dot-3" />
+            </div>
+            <p className="text-[10px] text-dark-400 mt-3">Securely verifying with Neon PostgreSQL</p>
+          </div>
+        </div>
+      )}
+
       {/* Background Lighting */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />

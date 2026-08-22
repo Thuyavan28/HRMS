@@ -148,6 +148,29 @@ export const ActivateAccountPage = () => {
 
   return (
     <div className="min-h-screen bg-dark-900 flex flex-col justify-center items-center p-4 py-8 relative overflow-hidden">
+      {/* Full-Screen Loader Overlay for Signup */}
+      {(submitting || validating) && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-dark-900/95 backdrop-blur-sm auth-loader-overlay">
+          <div className="relative flex items-center justify-center mb-6">
+            <div className="auth-loader-ring" />
+            <div className="auth-loader-spinner" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-slate-200 mb-1.5">
+              {submitting ? 'Activating your account & logging in...' : 'Verifying invitation token...'}
+            </p>
+            <div className="flex items-center justify-center gap-1 text-teal-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400 auth-dot-1" />
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400 auth-dot-2" />
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400 auth-dot-3" />
+            </div>
+            <p className="text-[10px] text-dark-400 mt-3">
+              {submitting ? 'Setting up your workspace and dashboard access' : 'Validating cryptographic token against HR records'}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Background Lighting */}
       <div className="absolute top-10 left-1/3 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
 

@@ -373,13 +373,11 @@ export const EmployeeManagement = () => {
           subtitle="Showing all registered organization personnel"
           columns={employeeColumns}
           data={employees}
-          filterKey="department"
+          filterKey="status"
           filterOptions={[
-            { label: 'Engineering', value: 'Engineering' },
-            { label: 'Design & UX', value: 'Design & UX' },
-            { label: 'Product', value: 'Product' },
-            { label: 'Human Resources', value: 'Human Resources' },
-            { label: 'Infrastructure', value: 'Infrastructure' }
+            { label: 'Active', value: 'Active' },
+            { label: 'Deactivated', value: 'Deactivated' },
+            { label: 'Invited / Pending', value: 'Invited' }
           ]}
           pageSize={10}
         />
@@ -644,9 +642,15 @@ export const EmployeeManagement = () => {
             <div className="p-4 rounded-xl bg-dark-850 border border-dark-700 space-y-2.5 text-xs">
               <div className="flex items-center justify-between pb-2 border-b border-dark-750">
                 <span className="font-bold text-slate-200 flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-teal-400" /> Dispatched Email Notification
+                  <Mail className="w-3.5 h-3.5 text-teal-400" /> Email Notification
                 </span>
-                <span className="text-[10px] text-teal-400 font-mono">Delivered to Inbox</span>
+                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
+                  generatedInvite.emailStatus === 'SENT'
+                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                }`}>
+                  {generatedInvite.emailStatus === 'SENT' ? '✓ Email Sent Successfully' : '⚠ Email Pending — Copy Link Below'}
+                </span>
               </div>
               <div className="space-y-1 text-[11px]">
                 <p className="text-dark-300">

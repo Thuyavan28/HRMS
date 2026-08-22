@@ -5,6 +5,7 @@ import {
   getEmployeeById,
   createEmployee,
   updateEmployee,
+  deleteEmployee,
   toggleEmployeeStatus,
   getInvitations,
   resendInvitation,
@@ -39,6 +40,7 @@ router.post('/employees', createEmployee);
 router.get('/employees/:id', getEmployeeById);
 router.patch('/employees/:id', updateEmployee);
 router.patch('/employees/:id/status', toggleEmployeeStatus);
+router.delete('/employees/:id', deleteEmployee);
 
 // Invitations Management
 router.get('/invitations', getInvitations);

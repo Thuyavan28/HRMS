@@ -1,6 +1,7 @@
 import { dataStore } from '../repositories/dataStore.js';
 import { query } from '../config/db.js';
 import bcrypt from 'bcryptjs';
+import { sendInvitationEmail, sendReminderEmail } from '../utils/email.js';
 
 // 1. ADMIN DASHBOARD
 export const getAdminDashboard = async (req, res, next) => {
@@ -253,9 +254,21 @@ export const createEmployee = async (req, res, next) => {
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
     const activationUrl = `${clientUrl}/activate?token=${invitation.token}`;
 
+    // Send real invitation email via Nodemailer
+    const emailResult = await sendInvitationEmail({
+      to: email,
+      fullName,
+      role: assignedRole,
+      employeeId,
+      activationUrl,
+      createdBy: `${req.user?.fullName || 'HR Admin'}`
+    });
+
     res.status(201).json({
       success: true,
-      message: `Employee ${fullName} created. Secure invitation generated for ${email}.`,
+      message: emailResult.success
+        ? `Employee ${fullName} created. Invitation email sent to ${email}.`
+        : `Employee ${fullName} created. Invitation generated but email delivery failed: ${emailResult.error}`,
       data: {
         employee: newEmployee,
         invitation: {
@@ -265,7 +278,9 @@ export const createEmployee = async (req, res, next) => {
           expiresAt: invitation.expiresAt,
           status: invitation.status
         },
-        activationUrl
+        activationUrl,
+        emailStatus: emailResult.success ? 'SENT' : 'FAILED',
+        emailPreviewUrl: emailResult.previewUrl || null
       }
     });
   } catch (error) {
@@ -312,16 +327,53 @@ export const toggleEmployeeStatus = async (req, res, next) => {
     const newStatus = employee.status === 'Active' ? 'Deactivated' : 'Active';
     const updated = dataStore.updateEmployeeProfile(employee.employeeId, { status: newStatus });
 
-    // Also update associated user account status
+    // Also update associated user account status in-memory
     const user = dataStore.findUserByEmployeeId(employee.employeeId);
+    const dbUserStatus = newStatus === 'Active' ? 'ACTIVE' : 'DEACTIVATED';
     if (user) {
-      user.status = newStatus === 'Active' ? 'ACTIVE' : 'DEACTIVATED';
+      user.status = dbUserStatus;
     }
+
+    // Update Live Database to enforce login blocking
+    await query('UPDATE employees SET status = $1 WHERE employee_id = $2;', [newStatus, employee.employeeId]);
+    await query('UPDATE users SET status = $1 WHERE employee_id = $2;', [dbUserStatus, employee.employeeId]);
 
     res.status(200).json({
       success: true,
       message: `Employee ${employee.fullName} marked as ${newStatus}.`,
       data: updated
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteEmployee = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const employee = dataStore.getEmployeeProfile(id) || dataStore.employees.find(e => e.id === id || e.employeeId === id);
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found.'
+      });
+    }
+
+    const targetEmpId = employee.employeeId;
+    const targetEmail = employee.email;
+
+    // Delete in database (Cascade handles salary_structures, leaves, attendance, payroll, reviews, etc.)
+    await query('DELETE FROM invitations WHERE employee_id = $1 OR email = $2;', [targetEmpId, targetEmail]);
+    await query('DELETE FROM users WHERE employee_id = $1 OR email = $2;', [targetEmpId, targetEmail]);
+    await query('DELETE FROM employees WHERE employee_id = $1;', [targetEmpId]);
+
+    // Delete in dataStore memory
+    dataStore.deleteEmployee(targetEmpId, targetEmail);
+
+    res.status(200).json({
+      success: true,
+      message: `Employee ${employee.fullName} (${targetEmpId}) has been permanently deleted.`
     });
   } catch (error) {
     next(error);
@@ -363,12 +415,23 @@ export const resendInvitation = async (req, res, next) => {
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
     const activationUrl = `${clientUrl}/activate?token=${updated.token}`;
 
+    // Send reminder email
+    const emailResult = await sendReminderEmail({
+      to: updated.email,
+      fullName: updated.fullName,
+      activationUrl
+    });
+
     res.status(200).json({
       success: true,
-      message: `Invitation refreshed. New activation link generated for ${updated.email}.`,
+      message: emailResult.success
+        ? `Invitation refreshed. Reminder email sent to ${updated.email}.`
+        : `Invitation refreshed. New link generated but email delivery failed.`,
       data: {
         invitation: updated,
-        activationUrl
+        activationUrl,
+        emailStatus: emailResult.success ? 'SENT' : 'FAILED',
+        emailPreviewUrl: emailResult.previewUrl || null
       }
     });
   } catch (error) {

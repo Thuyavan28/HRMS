@@ -16,17 +16,23 @@ import {
 import { adminService } from '../../services/adminService';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { SkeletonProfile } from '../../components/common/SkeletonLoader';
+import { Modal } from '../../components/common/Modal';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
 export const EmployeeDetailAdmin = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
+  const isHRAdmin = user?.role === 'admin';
 
   const [activeTab, setActiveTab] = useState('job');
   const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -147,13 +153,31 @@ export const EmployeeDetailAdmin = () => {
     }
   };
 
+  const handleDelete = async () => {
+    try {
+      setDeleting(true);
+      const res = await adminService.deleteEmployee(id);
+      if (res.success) {
+        toast.success(res.message || `Employee ${employee?.fullName} has been permanently deleted.`);
+        setIsDeleteModalOpen(false);
+        navigate('/admin/employees', { replace: true });
+      } else {
+        toast.error(res.message || 'Failed to delete employee.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete employee.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return <SkeletonProfile />;
   }
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Top Breadcrumb & Save Action */}
+      {/* Top Breadcrumb & Actions */}
       <div className="flex items-center justify-between">
         <Link
           to="/admin/employees"
@@ -162,13 +186,25 @@ export const EmployeeDetailAdmin = () => {
           <ArrowLeft className="w-4 h-4" /> Back to Employee Directory
         </Link>
 
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="btn-primary text-xs font-semibold flex items-center gap-2"
-        >
-          <Save className="w-4 h-4" /> {saving ? 'Saving Changes...' : 'Save All Changes'}
-        </button>
+        <div className="flex items-center gap-3">
+          {isHRAdmin && (
+            <button
+              type="button"
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="btn-danger text-xs font-semibold flex items-center gap-1.5 px-3.5 py-2 cursor-pointer shadow-sm hover:shadow-rose-500/20"
+            >
+              <Trash2 className="w-4 h-4" /> Delete Employee
+            </button>
+          )}
+
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="btn-primary text-xs font-semibold flex items-center gap-2"
+          >
+            <Save className="w-4 h-4" /> {saving ? 'Saving Changes...' : 'Save All Changes'}
+          </button>
+        </div>
       </div>
 
       {/* Hero Header */}
@@ -536,6 +572,94 @@ export const EmployeeDetailAdmin = () => {
           </div>
         </div>
       )}
+
+      {/* Danger Zone for HR Admin */}
+      {isHRAdmin && (
+        <div className="card-surface p-6 border-rose-500/30 bg-rose-950/10 rounded-xl space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-rose-300 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400" /> Danger Zone: Delete Employee
+              </h3>
+              <p className="text-xs text-dark-300 mt-1">
+                Permanently delete this employee's profile, database records, corporate credentials, attendance, and payroll history.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="btn-danger text-xs font-semibold flex items-center justify-center gap-1.5 px-4 py-2.5 whitespace-nowrap cursor-pointer hover:bg-rose-500/30"
+            >
+              <Trash2 className="w-4 h-4" /> Delete Employee
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal / Popup */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => !deleting && setIsDeleteModalOpen(false)}
+        title="Confirm Employee Deletion"
+        subtitle="This action is permanent and cannot be undone."
+        maxWidth="max-w-md"
+        footer={
+          <>
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="btn-secondary text-xs font-semibold px-4 py-2 cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={handleDelete}
+              className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs transition-all duration-200 cursor-pointer shadow-lg shadow-rose-900/40 disabled:opacity-50"
+            >
+              <Trash2 className="w-4 h-4 mr-1.5" />
+              <span>{deleting ? 'Deleting Employee...' : 'Yes, Delete Employee'}</span>
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4 text-xs">
+          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-400 mt-0.5" />
+            <div>
+              <p className="font-bold text-rose-200">Warning: Irreversible Action</p>
+              <p className="text-[11px] text-rose-300/90 mt-1 leading-relaxed">
+                You are about to permanently delete <strong>{employee?.fullName}</strong>. All associated portal access, attendance logs, leave balances, and payroll slips will be permanently removed.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-dark-850 border border-dark-700 space-y-2">
+            <div className="flex justify-between text-dark-300">
+              <span>Employee Name:</span>
+              <span className="font-semibold text-slate-100">{employee?.fullName}</span>
+            </div>
+            <div className="flex justify-between text-dark-300">
+              <span>Employee ID:</span>
+              <span className="font-mono text-teal-300 font-bold">{employee?.employeeId}</span>
+            </div>
+            <div className="flex justify-between text-dark-300">
+              <span>Work Email:</span>
+              <span className="font-mono text-slate-200">{employee?.email}</span>
+            </div>
+            <div className="flex justify-between text-dark-300">
+              <span>Department:</span>
+              <span className="text-slate-200">{employee?.jobDetails?.department || 'General'}</span>
+            </div>
+          </div>
+
+          <p className="text-dark-300 text-center pt-1 font-medium">
+            Are you sure you want to proceed with deleting this employee?
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 };
