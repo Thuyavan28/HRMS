@@ -1,4 +1,5 @@
 import { dataStore } from '../repositories/dataStore.js';
+import { query } from '../config/db.js';
 import bcrypt from 'bcryptjs';
 
 // 1. ADMIN DASHBOARD
@@ -213,6 +214,32 @@ export const createEmployee = async (req, res, next) => {
     };
 
     dataStore.employees.unshift(newEmployee);
+
+    // Persist new employee, salary structure, and leave balances directly into Neon DB
+    await query(`
+      INSERT INTO employees (employee_id, full_name, email, phone, address, emergency_contact, avatar, status, department, designation, job_title, work_type, join_date, reporting_manager, location, work_shift)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_DATE, $13, $14, $15)
+      ON CONFLICT (employee_id) DO UPDATE SET full_name = EXCLUDED.full_name, email = EXCLUDED.email;
+    `, [
+      employeeId, fullName, email, newEmployee.phone, newEmployee.address,
+      newEmployee.emergencyContact, newEmployee.avatar, 'Invited',
+      newEmployee.jobDetails.department, newEmployee.jobDetails.designation,
+      newEmployee.jobDetails.title, newEmployee.jobDetails.workType,
+      newEmployee.jobDetails.reportingManager, newEmployee.jobDetails.location,
+      newEmployee.jobDetails.workShift
+    ]);
+
+    await query(`
+      INSERT INTO salary_structures (employee_id, currency, basic, hra, transport, medical, gross, tax_deduction, pf_deduction, net_salary)
+      VALUES ($1, 'USD', $2, $3, $4, $5, $6, $7, $8, $9)
+      ON CONFLICT (employee_id) DO NOTHING;
+    `, [employeeId, basic, hra, transport, medical, gross, taxDeduction, pfDeduction, netSalary]);
+
+    await query(`
+      INSERT INTO leave_balances (employee_id, annual, monthly, daily, hourly, sick)
+      VALUES ($1, 18, 2, 5, 16, 10)
+      ON CONFLICT (employee_id) DO NOTHING;
+    `, [employeeId]);
 
     // 2. Generate secure single-use invitation record with authoritative role
     const invitation = dataStore.createInvitation({

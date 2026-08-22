@@ -77,7 +77,7 @@ export const validateInvitation = async (req, res, next) => {
  */
 export const activateAccount = async (req, res, next) => {
   try {
-    const { token, password } = req.body;
+    const { token, password, fullName } = req.body;
 
     if (!token || !password) {
       return res.status(400).json({
@@ -112,11 +112,13 @@ export const activateAccount = async (req, res, next) => {
     const saltRounds = 12;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // Activate user using the trusted role from the invitation record
-    // ANY req.body.role is intentionally ignored and discarded!
+    // Activate user using the trusted role and employeeId from the invitation record
+    // ANY req.body.role or req.body.employeeId is intentionally ignored and discarded!
+    // User can customize their full name if provided.
     const user = dataStore.activateUserFromInvitation({
       invitation,
-      passwordHash
+      passwordHash,
+      fullName: (fullName && fullName.trim()) || invitation.fullName
     });
 
     const { accessToken, refreshToken } = generateTokens(user);

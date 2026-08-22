@@ -597,20 +597,33 @@ export const EmployeeManagement = () => {
         </form>
       </Modal>
 
-      {/* 4. Generated Invitation Success Modal */}
+      {/* 4. Generated Invitation Success Modal & Email Simulation */}
       {generatedInvite && (
         <Modal
           isOpen={true}
           onClose={() => setGeneratedInvite(null)}
-          title="Invitation Generated Successfully"
-          subtitle="Share this secure single-use activation link with the employee"
+          title="Invitation Generated & Email Dispatched"
+          subtitle="The employee record has been provisioned with fixed role & employee ID"
           footer={
-            <button
-              onClick={() => setGeneratedInvite(null)}
-              className="btn-primary text-xs font-semibold w-full"
-            >
-              Done & Close
-            </button>
+            <div className="flex items-center justify-between w-full gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  const url = generatedInvite.activationUrl || `${window.location.origin}/signup?token=${generatedInvite.invitation?.token}`;
+                  window.open(url, '_blank');
+                }}
+                className="btn-secondary text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Open Signup Link (Test Flow) →</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setGeneratedInvite(null)}
+                className="btn-primary text-xs font-semibold px-6"
+              >
+                Done & Close
+              </button>
+            </div>
           }
         >
           <div className="space-y-4">
@@ -618,24 +631,45 @@ export const EmployeeManagement = () => {
               <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
               <div className="text-xs">
                 <span className="font-bold text-emerald-300 block">
-                  Employee Record Created & Role Locked
+                  Employee Provisioned & Role Locked in Database
                 </span>
                 <span className="text-dark-300">
-                  Role: <strong className="text-teal-300 uppercase">{generatedInvite.invitation?.role || generatedInvite.employee?.jobDetails?.department}</strong>.
-                  The employee will be required to set their password upon opening the link.
+                  Role: <strong className="text-teal-300 uppercase">{generatedInvite.invitation?.role || 'EMPLOYEE'}</strong> | Employee ID: <strong className="text-teal-300">{generatedInvite.employee?.employeeId || generatedInvite.invitation?.employeeId}</strong>.
+                  These values are locked and will be auto-filled during signup.
                 </span>
+              </div>
+            </div>
+
+            {/* Simulated Email Envelope Preview */}
+            <div className="p-4 rounded-xl bg-dark-850 border border-dark-700 space-y-2.5 text-xs">
+              <div className="flex items-center justify-between pb-2 border-b border-dark-750">
+                <span className="font-bold text-slate-200 flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-teal-400" /> Dispatched Email Notification
+                </span>
+                <span className="text-[10px] text-teal-400 font-mono">Delivered to Inbox</span>
+              </div>
+              <div className="space-y-1 text-[11px]">
+                <p className="text-dark-300">
+                  <strong className="text-slate-200">To:</strong> {generatedInvite.employee?.email || generatedInvite.invitation?.email}
+                </p>
+                <p className="text-dark-300">
+                  <strong className="text-slate-200">Subject:</strong> Welcome to Dayflow — Complete Your Employee Account Setup
+                </p>
+                <p className="text-dark-400 italic pt-1">
+                  "Hello {generatedInvite.employee?.fullName}, you have been invited to Dayflow HRMS as an {generatedInvite.invitation?.role?.toUpperCase()}. Click the link below to verify your email, customize your name, and set your password."
+                </p>
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                Activation Link (Valid for 7 Days)
+                Activation Link (Single-Use, Valid for 7 Days)
               </label>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   readOnly
-                  value={generatedInvite.activationUrl || `${window.location.origin}/activate?token=${generatedInvite.invitation?.token}`}
+                  value={generatedInvite.activationUrl || `${window.location.origin}/signup?token=${generatedInvite.invitation?.token}`}
                   className="input-field font-mono text-xs bg-dark-900 select-all"
                 />
                 <button
@@ -643,7 +677,7 @@ export const EmployeeManagement = () => {
                   onClick={() =>
                     copyToClipboard(
                       generatedInvite.activationUrl ||
-                        `${window.location.origin}/activate?token=${generatedInvite.invitation?.token}`
+                        `${window.location.origin}/signup?token=${generatedInvite.invitation?.token}`
                     )
                   }
                   className="btn-primary text-xs font-semibold px-4 py-2.5 flex items-center gap-1.5 whitespace-nowrap cursor-pointer"

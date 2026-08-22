@@ -12,12 +12,13 @@ import {
   ShieldCheck,
   KeyRound,
   Sparkles,
-  Info
+  Info,
+  Building,
+  UserCheck
 } from 'lucide-react';
 import { authService } from '../../services/authService';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { SkeletonCard } from '../../components/common/SkeletonLoader';
 
 export const ActivateAccountPage = () => {
   const [searchParams] = useSearchParams();
@@ -31,6 +32,8 @@ export const ActivateAccountPage = () => {
   const [validating, setValidating] = useState(!!tokenParam);
   const [tokenError, setTokenError] = useState('');
 
+  // Form states
+  const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -47,15 +50,16 @@ export const ActivateAccountPage = () => {
     try {
       setValidating(true);
       setTokenError('');
-      const res = await authService.validateInvitation(tok);
+      const res = await authService.validateInvitation(tok.trim());
       if (res.success && res.data) {
         setInvitationData(res.data);
+        setFullName(res.data.fullName || '');
       } else {
         setTokenError(res.message || 'Invalid or expired invitation token.');
         setInvitationData(null);
       }
     } catch (err) {
-      const msg = err.response?.data?.message || 'Invalid or expired invitation token.';
+      const msg = err.response?.data?.message || 'Invalid or expired invitation token. Please request a new invite from HR.';
       setTokenError(msg);
       setInvitationData(null);
     } finally {
@@ -88,6 +92,11 @@ export const ActivateAccountPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!fullName.trim()) {
+      setSubmitError('Please enter your full name.');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setSubmitError('Passwords do not match.');
       return;
@@ -102,26 +111,28 @@ export const ActivateAccountPage = () => {
       setSubmitting(true);
       setSubmitError('');
 
-      // Critical Security: Even if any client tries to send an altered role,
-      // the backend strictly resolves the role from the trusted invitation database record.
+      // CRITICAL SECURITY GUARANTEE:
+      // Even if any malicious actor injects "role": "ADMIN",
+      // the backend strictly resolves the role from the trusted database invitation record.
       const res = await authService.activateAccount({
-        token,
+        token: token.trim(),
+        fullName: fullName.trim(),
         password,
         confirmPassword
       });
 
       if (res.success && res.data) {
-        toast.success(`Account activated! Welcome to Dayflow, ${res.data.user.fullName}`);
+        toast.success(`Welcome to Dayflow, ${res.data.user.fullName}!`);
         await refreshUser();
 
-        // Redirect based on authoritative role from backend response
+        // Immediate direct redirection to designated dashboard
         const targetRoute = res.data.user.role === 'admin' ? '/admin/dashboard' : '/employee/dashboard';
         navigate(targetRoute, { replace: true });
       } else {
         setSubmitError(res.message || 'Account activation failed.');
       }
     } catch (err) {
-      const msg = err.response?.data?.message || 'Activation failed. Please check your token or credentials.';
+      const msg = err.response?.data?.message || 'Activation failed. Please check your credentials or invitation.';
       setSubmitError(msg);
     } finally {
       setSubmitting(false);
@@ -137,7 +148,7 @@ export const ActivateAccountPage = () => {
 
   return (
     <div className="min-h-screen bg-dark-900 flex flex-col justify-center items-center p-4 py-8 relative overflow-hidden">
-      {/* Background Glows */}
+      {/* Background Lighting */}
       <div className="absolute top-10 left-1/3 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-lg z-10">
@@ -150,20 +161,20 @@ export const ActivateAccountPage = () => {
           <p className="text-xs text-dark-300 mt-1">Every workday, perfectly aligned.</p>
         </div>
 
-        {/* Activation Card */}
+        {/* Activation & Setup Card */}
         <div className="card-surface p-8 backdrop-blur-xl border-dark-700/80 shadow-2xl">
           <div className="mb-6">
             <div className="flex items-center gap-2 text-xs font-semibold text-teal-400 mb-1">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Invitation-Based Onboarding</span>
+              <span>Official HR Invitation Verification</span>
             </div>
-            <h2 className="text-xl font-bold text-slate-100">Activate Your Account</h2>
+            <h2 className="text-xl font-bold text-slate-100">Complete Your Account Setup</h2>
             <p className="text-xs text-dark-300 mt-1">
-              Complete your profile setup using the secure HR invitation link
+              Confirm your identity, verify fixed credentials, and set your workspace password
             </p>
           </div>
 
-          {/* 1. Step: Enter Token manually if no valid invitation loaded */}
+          {/* 1. State: Enter / Verify Token */}
           {!invitationData && !validating && (
             <div className="space-y-4">
               {tokenError && (
@@ -176,7 +187,7 @@ export const ActivateAccountPage = () => {
               <form onSubmit={handleManualTokenSubmit} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                    Invitation Activation Token
+                    Invitation Token / Link
                   </label>
                   <div className="relative">
                     <KeyRound className="w-4 h-4 text-dark-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -184,7 +195,7 @@ export const ActivateAccountPage = () => {
                       type="text"
                       value={token}
                       onChange={(e) => setToken(e.target.value)}
-                      placeholder="Paste your 64-char invitation token..."
+                      placeholder="Paste your invitation token or URL..."
                       className="input-field pl-10 font-mono text-xs"
                       required
                     />
@@ -193,53 +204,53 @@ export const ActivateAccountPage = () => {
 
                 <button
                   type="submit"
-                  className="w-full btn-primary py-2.5 text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full btn-primary py-2.5 text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-glow-teal-sm"
                 >
-                  <span>Verify Invitation Token</span>
+                  <span>Verify Invitation Link</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </form>
 
-              {/* Sample Demo Invitation Shortcut for quick testing */}
+              {/* Sample Demo Invitation Link for testing */}
               <div className="p-3.5 rounded-xl bg-dark-850 border border-dark-700 text-xs space-y-2">
                 <p className="font-semibold text-slate-200 flex items-center gap-1.5">
-                  <Info className="w-3.5 h-3.5 text-teal-400" /> Sample Pending Invitation (Test Link):
+                  <Info className="w-3.5 h-3.5 text-teal-400" /> Test Pending Invitation (Marcus Vance):
                 </p>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] text-dark-300 truncate">
-                    Priya Sharma (Employee Role)
+                  <span className="text-[11px] text-dark-300 truncate font-mono">
+                    demo-invite-token-admin-2026
                   </span>
                   <button
                     type="button"
                     onClick={() => {
-                      setToken('demo-invite-token-emp-2026');
-                      checkToken('demo-invite-token-emp-2026');
+                      setToken('demo-invite-token-admin-2026');
+                      checkToken('demo-invite-token-admin-2026');
                     }}
                     className="px-2.5 py-1 rounded bg-teal-500/15 text-teal-300 border border-teal-500/30 text-[10px] font-bold hover:bg-teal-500/25 cursor-pointer whitespace-nowrap"
                   >
-                    Load Sample Invite
+                    Load Marcus Vance
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Validating Loading State */}
+          {/* Validating State */}
           {validating && (
             <div className="py-8 space-y-3 text-center animate-pulse">
               <div className="w-10 h-10 rounded-full bg-teal-500/20 text-teal-400 flex items-center justify-center mx-auto mb-2">
                 <ShieldCheck className="w-5 h-5 animate-spin" />
               </div>
               <p className="text-xs font-semibold text-slate-200">
-                Verifying cryptographic invitation token...
+                Checking cryptographic invitation token against HR records...
               </p>
               <p className="text-[11px] text-dark-400">
-                Retrieving trusted employee record and authoritative role from HR database
+                Retrieving assigned employee ID, authorized role, and work email
               </p>
             </div>
           )}
 
-          {/* 2. Step: Active Setup Form with READ-ONLY Trusted Metadata */}
+          {/* 2. State: Verified Setup Form with FIXED & EDITABLE fields */}
           {invitationData && !validating && (
             <form onSubmit={handleSubmit} className="space-y-4">
               {submitError && (
@@ -249,46 +260,70 @@ export const ActivateAccountPage = () => {
                 </div>
               )}
 
-              {/* Pre-filled Trusted Metadata (Strictly Read-Only) */}
+              {/* FIXED / AUTO-FILLED CREDENTIALS (Strictly Read-Only) */}
               <div className="p-4 rounded-xl bg-dark-850 border border-dark-700 space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-dark-750">
-                  <span className="text-[11px] text-dark-400 uppercase font-semibold">
-                    Verified Invitation Identity
+                  <span className="text-[11px] text-dark-400 uppercase font-semibold flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
+                    Verified Corporate Credentials
                   </span>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold flex items-center gap-1">
-                    <Check className="w-3 h-3" /> Token Verified
+                    <Check className="w-3 h-3" /> HR Verified
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
+                  {/* Fixed Employee ID */}
                   <div>
-                    <span className="text-dark-400 text-[10px] uppercase block">Employee Name</span>
-                    <span className="font-bold text-slate-100">{invitationData.fullName}</span>
+                    <label className="text-dark-400 text-[10px] uppercase font-semibold flex items-center gap-1 mb-1">
+                      <Lock className="w-3 h-3 text-amber-400" /> Employee ID (Fixed)
+                    </label>
+                    <div className="px-3 py-2 rounded-lg bg-dark-900 border border-dark-750 text-teal-300 font-mono font-bold text-xs select-none">
+                      {invitationData.employeeId}
+                    </div>
                   </div>
+
+                  {/* Fixed Assigned Role */}
                   <div>
-                    <span className="text-dark-400 text-[10px] uppercase block">Employee ID</span>
-                    <span className="font-mono font-bold text-teal-300">{invitationData.employeeId}</span>
+                    <label className="text-dark-400 text-[10px] uppercase font-semibold flex items-center gap-1 mb-1">
+                      <Lock className="w-3 h-3 text-amber-400" /> Assigned Role (Fixed)
+                    </label>
+                    <div className="px-3 py-2 rounded-lg bg-dark-900 border border-dark-750 text-amber-300 font-mono font-bold text-xs uppercase select-none">
+                      {invitationData.role}
+                    </div>
                   </div>
+
+                  {/* Fixed Work Email */}
                   <div className="col-span-2">
-                    <span className="text-dark-400 text-[10px] uppercase block">Registered Work Email</span>
-                    <span className="font-mono text-slate-200 text-xs">{invitationData.email}</span>
+                    <label className="text-dark-400 text-[10px] uppercase font-semibold flex items-center gap-1 mb-1">
+                      <Lock className="w-3 h-3 text-amber-400" /> Work Email (Fixed)
+                    </label>
+                    <div className="px-3 py-2 rounded-lg bg-dark-900 border border-dark-750 text-slate-300 font-mono text-xs select-none">
+                      {invitationData.email}
+                    </div>
                   </div>
                 </div>
 
-                {/* STRICT READ-ONLY ROLE BADGE */}
-                <div className="pt-2 border-t border-dark-750 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-dark-400 uppercase font-semibold block">
-                      Assigned Account Role
-                    </span>
-                    <span className="text-[10px] text-dark-400">
-                      Authoritatively assigned by {invitationData.createdBy}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-dark-750 border border-dark-600 text-teal-300 text-xs font-extrabold uppercase tracking-wide">
-                    <Lock className="w-3.5 h-3.5 text-amber-400" />
-                    <span>{invitationData.role}</span>
-                  </div>
+                <p className="text-[10px] text-dark-400 italic pt-1">
+                  * Employee ID, Work Email, and Account Role were authoritatively configured by HR and cannot be modified.
+                </p>
+              </div>
+
+              {/* EDITABLE FULL NAME */}
+              <div>
+                <label className="block text-xs font-semibold text-dark-300 mb-1.5">
+                  Your Full Name (You can customize your preferred name)
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-dark-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Enter your full name"
+                    className="input-field pl-10"
+                    required
+                  />
                 </div>
               </div>
 
@@ -329,7 +364,7 @@ export const ActivateAccountPage = () => {
                 </div>
               </div>
 
-              {/* Password Strength Indicator */}
+              {/* Dynamic Password Strength Indicator */}
               {password && (
                 <div className="p-3 rounded-xl bg-dark-850 border border-dark-700 space-y-2">
                   <div className="flex items-center justify-between text-[11px]">
@@ -393,11 +428,11 @@ export const ActivateAccountPage = () => {
                 className="w-full btn-primary py-3 text-xs font-semibold flex items-center justify-center gap-2 mt-2 cursor-pointer shadow-glow-teal-sm"
               >
                 {submitting ? (
-                  <span>Activating Workspace Account...</span>
+                  <span>Activating Account & Logging In...</span>
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4" />
-                    <span>Activate Account & Sign In</span>
+                    <span>Complete Sign Up & Access Dashboard</span>
                   </>
                 )}
               </button>
@@ -405,9 +440,9 @@ export const ActivateAccountPage = () => {
           )}
 
           <div className="mt-6 text-center text-xs text-dark-300 border-t border-dark-700 pt-4">
-            Already activated your account?{' '}
+            Already registered?{' '}
             <Link to="/login" className="text-teal-400 hover:text-teal-300 font-semibold">
-              Sign In to Dayflow
+              Sign In with Email & Password
             </Link>
           </div>
         </div>

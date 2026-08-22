@@ -513,10 +513,12 @@ class DataStoreService {
   /**
    * Activate user from invitation with STRICT backend role enforcement
    */
-  activateUserFromInvitation({ invitation, passwordHash }) {
+  activateUserFromInvitation({ invitation, passwordHash, fullName }) {
+    const finalFullName = (fullName && fullName.trim()) || invitation.fullName;
     let existingUser = this.findUserByEmail(invitation.email);
 
     if (existingUser) {
+      existingUser.fullName = finalFullName;
       existingUser.passwordHash = passwordHash;
       existingUser.status = 'ACTIVE';
       existingUser.isVerified = true;
@@ -524,15 +526,15 @@ class DataStoreService {
       existingUser.lastLoginAt = new Date().toISOString();
 
       query(`
-        UPDATE users SET password_hash = $1, status = 'ACTIVE', is_verified = TRUE, role = $2, last_login_at = NOW()
-        WHERE email = $3;
-      `, [passwordHash, invitation.role, invitation.email]).catch(console.error);
+        UPDATE users SET full_name = $1, password_hash = $2, status = 'ACTIVE', is_verified = TRUE, role = $3, last_login_at = NOW()
+        WHERE email = $4;
+      `, [finalFullName, passwordHash, invitation.role, invitation.email]).catch(console.error);
     } else {
       existingUser = {
         id: `usr-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
         employeeId: invitation.employeeId,
         email: invitation.email,
-        fullName: invitation.fullName,
+        fullName: finalFullName,
         passwordHash,
         role: invitation.role,
         status: 'ACTIVE',
@@ -546,20 +548,21 @@ class DataStoreService {
       query(`
         INSERT INTO users (employee_id, email, full_name, password_hash, role, status, is_verified, avatar)
         VALUES ($1, $2, $3, $4, $5, 'ACTIVE', TRUE, $6)
-        ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, status = 'ACTIVE';
-      `, [invitation.employeeId, invitation.email, invitation.fullName, passwordHash, invitation.role, existingUser.avatar]).catch(console.error);
+        ON CONFLICT (email) DO UPDATE SET full_name = EXCLUDED.full_name, password_hash = EXCLUDED.password_hash, status = 'ACTIVE';
+      `, [invitation.employeeId, invitation.email, finalFullName, passwordHash, invitation.role, existingUser.avatar]).catch(console.error);
     }
 
     this.acceptInvitation(invitation.token);
 
     const empProfile = this.getEmployeeProfile(invitation.employeeId);
     if (empProfile) {
+      empProfile.fullName = finalFullName;
       empProfile.status = 'Active';
       empProfile.userId = existingUser.id;
 
       query(`
-        UPDATE employees SET status = 'Active' WHERE employee_id = $1;
-      `, [invitation.employeeId]).catch(console.error);
+        UPDATE employees SET full_name = $1, status = 'Active' WHERE employee_id = $2;
+      `, [finalFullName, invitation.employeeId]).catch(console.error);
     }
 
     return existingUser;

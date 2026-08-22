@@ -48,6 +48,7 @@ function App() {
             {/* Public Auth Routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/activate" element={<ActivateAccountPage />} />
+            <Route path="/signup" element={<ActivateAccountPage />} />
             <Route path="/register" element={<Navigate to="/activate" replace />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
 
