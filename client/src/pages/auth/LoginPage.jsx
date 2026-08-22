@@ -137,7 +137,7 @@ export const LoginPage = () => {
                     setEmail(e.target.value);
                     if (error) setError('');
                   }}
-                  placeholder="name@company.com"
+                  placeholder="user@email.com"
                   className="input-field pl-10 text-xs"
                   required
                 />

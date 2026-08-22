@@ -40,8 +40,8 @@ export const activateValidationRules = [
 export const loginValidationRules = [
   body('email')
     .trim()
-    .notEmpty().withMessage('Please enter your work email address')
-    .isEmail().withMessage('Please enter a valid email format (e.g. name@company.com)'),
+    .notEmpty().withMessage('Please enter your email address')
+    .isEmail().withMessage('Please enter a valid email format (e.g. user@email.com)'),
 
   body('password')
     .notEmpty().withMessage('Please enter your password'),

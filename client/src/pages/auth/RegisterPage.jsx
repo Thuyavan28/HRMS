@@ -160,7 +160,7 @@ export const RegisterPage = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="name@company.com"
+                  placeholder="user@email.com"
                   className="input-field pl-10"
                   required
                 />
