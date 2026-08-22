@@ -13,7 +13,7 @@ export const StatusBadge = ({ status, className = '' }) => {
     styles = 'bg-amber-500/15 text-amber-400 border-amber-500/30';
   } else if (['inactive', 'rejected', 'absent', 'cancelled', 'deactivated', 'failed', 'low'].includes(s)) {
     styles = 'bg-rose-500/15 text-rose-400 border-rose-500/30';
-  } else if (['processed', 'full-time', 'hybrid', 'remote', 'paid leave', 'sick leave', 'meets expectations'].includes(s)) {
+  } else if (['processed', 'full-time', 'hybrid', 'remote', 'paid leave', 'sick leave', 'meets expectations', 'on leave', 'on-leave', 'leave'].includes(s)) {
     styles = 'bg-teal-500/15 text-teal-300 border-teal-500/30';
   } else if (['info', 'on-site', 'contractor', 'general'].includes(s)) {
     styles = 'bg-sky-500/15 text-sky-400 border-sky-500/30';

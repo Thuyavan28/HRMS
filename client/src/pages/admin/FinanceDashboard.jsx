@@ -182,7 +182,7 @@ export const FinanceDashboard = () => {
                 <span className="font-bold text-slate-100">{dept.department}</span>
                 <div className="flex items-center gap-4">
                   <span className="text-dark-300">
-                    Actual: <span className="font-bold text-slate-200">${dept.actual.toLocaleString()}</span> / Budget: ${dept.budget.toLocaleString()}
+                    Actual: <span className="font-bold text-slate-200">₹{dept.actual.toLocaleString()}</span> / Budget: ₹{dept.budget.toLocaleString()}
                   </span>
                   <span className="font-mono font-bold text-teal-400">{dept.utilization}%</span>
                 </div>

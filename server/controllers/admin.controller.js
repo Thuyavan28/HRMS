@@ -1,4 +1,4 @@
-import { dataStore } from '../repositories/dataStore.js';
+import { dataStore, isLateCheckInTime, formatDateStr } from '../repositories/dataStore.js';
 import { query } from '../config/db.js';
 import bcrypt from 'bcryptjs';
 import { sendInvitationEmail, sendReminderEmail } from '../utils/email.js';
@@ -165,14 +165,29 @@ export const createEmployee = async (req, res, next) => {
       });
     }
 
-    // Check DB and dataStore for existing email
+    // Check DB and dataStore for existing user
     const existingUser = dataStore.findUserByEmail(cleanEmail);
-    const dbEmailCheck = await query('SELECT email FROM users WHERE email = $1 UNION SELECT email FROM employees WHERE email = $1 LIMIT 1;', [cleanEmail]);
-    if (existingUser || dbEmailCheck.rows.length > 0) {
+    const dbUserCheck = await query('SELECT email FROM users WHERE email = $1 LIMIT 1;', [cleanEmail]);
+    if (existingUser || dbUserCheck.rows.length > 0) {
       return res.status(409).json({
         success: false,
-        message: `An account or invitation with email ${cleanEmail} already exists.`
+        message: `An active account with email ${cleanEmail} already exists.`
       });
+    }
+
+    // Cleanup any orphaned employee record (status = Invited) that has no active user
+    const dbEmailCheck = await query('SELECT employee_id, status FROM employees WHERE email = $1 LIMIT 1;', [cleanEmail]);
+    if (dbEmailCheck.rows.length > 0) {
+      if (dbEmailCheck.rows[0].status === 'Invited') {
+        // Delete the orphaned employee to allow recreation
+        await query('DELETE FROM employees WHERE email = $1 AND status = $2;', [cleanEmail, 'Invited']);
+        dataStore.employees = dataStore.employees.filter(e => e.email !== cleanEmail || e.status !== 'Invited');
+      } else {
+        return res.status(409).json({
+          success: false,
+          message: `An active employee with email ${cleanEmail} already exists.`
+        });
+      }
     }
 
     const assignedRole = role === 'admin' ? 'admin' : 'employee';
@@ -496,32 +511,129 @@ export const revokeInvitation = async (req, res, next) => {
 export const getAdminAttendance = async (req, res, next) => {
   try {
     const { employeeId, status, date } = req.query;
-    const records = dataStore.getAllAttendance({ employeeId, status, date });
-    const allEmployees = dataStore.getAllEmployees();
+    const allAttendance = dataStore.getAllAttendance();
+    const allEmployees = dataStore.getAllEmployees().filter(e => e.status === 'Active');
+    const allLeaves = dataStore.getAllLeaves();
 
-    const enrichedRecords = records.map(r => {
-      const emp = allEmployees.find(e => e.employeeId === r.employeeId);
-      return {
-        ...r,
-        employeeName: emp ? emp.fullName : r.employeeId,
+    // Determine target date (explicit query param, or latest active date in records, or today)
+    const todayStr = formatDateStr(new Date());
+    const sortedAttDates = [...allAttendance].sort((a, b) => b.date.localeCompare(a.date));
+    const targetDate = date || (sortedAttDates.length > 0 ? sortedAttDates[0].date : todayStr);
+
+    const now = new Date();
+    const isToday = targetDate === todayStr;
+    const isPast1PM = !isToday || (now.getHours() >= 13);
+
+    // Records specifically on targetDate
+    const targetDateAttendance = allAttendance.filter(a => a.date === targetDate);
+    const attendedEmpIds = new Set(targetDateAttendance.map(a => a.employeeId));
+
+    // Build synthesized full company roster for targetDate
+    const fullRoster = [];
+
+    // 1. Clocked-in records
+    targetDateAttendance.forEach(att => {
+      const emp = allEmployees.find(e => e.employeeId === att.employeeId) || dataStore.getEmployeeProfile(att.employeeId);
+      let attStatus = att.status || 'Present';
+      if (att.checkIn && isLateCheckInTime(att.checkIn) && attStatus === 'Present') {
+        attStatus = 'Late';
+      }
+      fullRoster.push({
+        ...att,
+        status: attStatus,
+        employeeName: emp ? emp.fullName : att.employeeId,
         department: emp?.jobDetails?.department || 'General',
         avatar: emp?.avatar
-      };
+      });
     });
 
-    const todayStr = new Date().toISOString().split('T')[0];
-    const todayRecords = records.filter(r => r.date === todayStr);
+    // 2. Active employees who haven't punched in on targetDate
+    allEmployees.forEach(emp => {
+      if (!attendedEmpIds.has(emp.employeeId)) {
+        // Check if employee has an approved leave covering targetDate
+        const onLeave = allLeaves.some(l => 
+          l.employeeId === emp.employeeId && 
+          l.status === 'Approved' && 
+          l.fromDate <= targetDate && 
+          targetDate <= l.toDate
+        );
+
+        if (onLeave) {
+          fullRoster.push({
+            id: `lv-slot-${emp.employeeId}-${targetDate}`,
+            employeeId: emp.employeeId,
+            employeeName: emp.fullName,
+            department: emp?.jobDetails?.department || 'General',
+            avatar: emp?.avatar,
+            date: targetDate,
+            checkIn: '—',
+            checkOut: '—',
+            workHours: 'Approved Leave',
+            status: 'On Leave'
+          });
+        } else if (isPast1PM) {
+          // Past 1:00 PM cutoff or historical date: assign Absent
+          fullRoster.push({
+            id: `abs-slot-${emp.employeeId}-${targetDate}`,
+            employeeId: emp.employeeId,
+            employeeName: emp.fullName,
+            department: emp?.jobDetails?.department || 'General',
+            avatar: emp?.avatar,
+            date: targetDate,
+            checkIn: '—',
+            checkOut: '—',
+            workHours: 'Unlogged',
+            status: 'Absent'
+          });
+        } else {
+          // Before 1:00 PM on today: Not Clocked In (Absent/Pending)
+          fullRoster.push({
+            id: `unl-slot-${emp.employeeId}-${targetDate}`,
+            employeeId: emp.employeeId,
+            employeeName: emp.fullName,
+            department: emp?.jobDetails?.department || 'General',
+            avatar: emp?.avatar,
+            date: targetDate,
+            checkIn: '—',
+            checkOut: '—',
+            workHours: 'Pending Punch',
+            status: 'Absent'
+          });
+        }
+      }
+    });
+
+    // Calculate Summary Metrics
+    const onTimeCount = fullRoster.filter(r => r.status === 'Present').length;
+    const lateCount = fullRoster.filter(r => r.status === 'Late').length;
+    const presentTotal = onTimeCount + lateCount;
+    const onLeaveCount = fullRoster.filter(r => r.status === 'On Leave').length;
+    const absentCount = fullRoster.filter(r => r.status === 'Absent').length;
+    const onTimeRate = presentTotal > 0 ? Math.round((onTimeCount / presentTotal) * 100 * 10) / 10 : 94.5;
+
+    // Apply query filters if specified
+    let filteredRecords = fullRoster;
+    if (employeeId && employeeId !== 'All') {
+      filteredRecords = filteredRecords.filter(r => r.employeeId === employeeId);
+    }
+    if (status && status !== 'All') {
+      filteredRecords = filteredRecords.filter(r => r.status.toLowerCase() === status.toLowerCase());
+    }
 
     res.status(200).json({
       success: true,
       data: {
-        records: enrichedRecords,
+        records: filteredRecords,
         summary: {
-          totalTracked: records.length,
-          presentToday: todayRecords.filter(r => r.status === 'Present').length,
-          lateToday: todayRecords.filter(r => r.status === 'Late').length,
-          absentToday: todayRecords.filter(r => r.status === 'Absent').length,
-          onTimeRate: 94.5
+          totalTracked: filteredRecords.length,
+          presentToday: presentTotal,
+          onTimeToday: onTimeCount,
+          lateToday: lateCount,
+          onLeaveToday: onLeaveCount,
+          absentToday: absentCount,
+          onTimeRate: onTimeRate,
+          totalActiveStaff: allEmployees.length,
+          targetDate
         }
       }
     });
@@ -684,34 +796,85 @@ export const getTimeManagementDashboard = async (req, res, next) => {
   try {
     const timeData = dataStore.getTimeManagementData();
     const allAttendance = dataStore.getAllAttendance();
-    const allEmployees = dataStore.getAllEmployees();
+    const allEmployees = dataStore.getAllEmployees().filter(e => e.status === 'Active');
+    const allLeaves = dataStore.getAllLeaves();
 
-    // MISSING 7 FIX: Filter to today's records only
-    const todayStr = new Date().toISOString().split('T')[0];
-    const todayAttendance = allAttendance.filter(a => a.date === todayStr);
+    // Use the most recent date from the records, or fallback to today if empty
+    const todayStr = formatDateStr(new Date());
+    const sortedAttendance = [...allAttendance].sort((a, b) => b.date.localeCompare(a.date));
+    const latestDateStr = sortedAttendance.length > 0 ? sortedAttendance[0].date : todayStr;
+
+    const now = new Date();
+    const isToday = latestDateStr === todayStr;
+    const isPast1PM = !isToday || (now.getHours() >= 13);
+
+    const todayAttendance = allAttendance.filter(a => a.date === latestDateStr);
+    const attendedEmpIds = new Set(todayAttendance.map(a => a.employeeId));
 
     const liveCheckInFeed = todayAttendance.map(a => {
-      const emp = allEmployees.find(e => e.employeeId === a.employeeId);
+      const emp = allEmployees.find(e => e.employeeId === a.employeeId) || dataStore.getEmployeeProfile(a.employeeId);
+      let status = a.status || 'Present';
+      if (a.checkIn && isLateCheckInTime(a.checkIn) && status === 'Present') {
+        status = 'Late';
+      }
       return {
         ...a,
+        status,
         employeeName: emp ? emp.fullName : a.employeeId,
         avatar: emp?.avatar,
         department: emp?.jobDetails?.department || 'General'
       };
     }).sort((a, b) => (b.checkIn || '').localeCompare(a.checkIn || ''));
 
-    const activeEmployees = allEmployees.filter(e => e.status === 'Active').length;
+    // Count on-leave and absent for active staff
+    let onLeaveCount = 0;
+    let absentCount = 0;
+
+    allEmployees.forEach(emp => {
+      if (!attendedEmpIds.has(emp.employeeId)) {
+        const onLeave = allLeaves.some(l => 
+          l.employeeId === emp.employeeId && 
+          l.status === 'Approved' && 
+          l.fromDate <= latestDateStr && 
+          latestDateStr <= l.toDate
+        );
+        if (onLeave) {
+          onLeaveCount++;
+        } else if (isPast1PM) {
+          absentCount++;
+        } else {
+          absentCount++;
+        }
+      }
+    });
+
+    const onTimeCount = liveCheckInFeed.filter(a => a.status === 'Present').length;
+    const lateCount = liveCheckInFeed.filter(a => a.status === 'Late').length;
+    const totalPunched = onTimeCount + lateCount;
+    const activeClockedInNow = liveCheckInFeed.filter(a => a.checkIn && !a.checkOut).length;
+    const onTimeArrivalRate = totalPunched > 0 ? Math.round((onTimeCount / totalPunched) * 100 * 10) / 10 : 94.2;
+
     const kpis = {
-      presentToday: todayAttendance.filter(a => a.status === 'Present' || a.status === 'Late').length,
-      absentToday: Math.max(0, activeEmployees - todayAttendance.length),
-      lateToday: todayAttendance.filter(a => a.status === 'Late').length,
-      checkedOutCount: todayAttendance.filter(a => a.checkOut).length
+      presentToday: totalPunched,
+      onTimeToday: onTimeCount,
+      lateToday: lateCount,
+      onLeaveToday: onLeaveCount,
+      absentToday: absentCount,
+      checkedOutCount: liveCheckInFeed.filter(a => a.checkOut).length,
+      activeClockedInNow: activeClockedInNow,
+      onTimeArrivalRate: onTimeArrivalRate,
+      totalStaff: allEmployees.length
     };
 
     res.status(200).json({
       success: true,
       data: {
         ...timeData,
+        summary: {
+          ...timeData.summary,
+          activeClockedInNow: activeClockedInNow,
+          onTimeArrivalRate: onTimeArrivalRate
+        },
         todayKpis: kpis,
         liveCheckInFeed
       }

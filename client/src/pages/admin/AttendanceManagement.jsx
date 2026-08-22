@@ -142,29 +142,29 @@ export const AttendanceManagement = () => {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <StatCard
           title="On-Time Arrival Rate"
-          value={`${summary?.onTimeRate || 94.5}%`}
-          subtitle="Compliance baseline"
+          value={`${summary?.onTimeRate ?? 94.5}%`}
+          subtitle={`${summary?.onTimeToday ?? 0} on-time arrivals`}
           icon={CheckCircle}
           iconBg="bg-teal-500/15 text-teal-400 border-teal-500/30"
         />
         <StatCard
           title="Present Today"
-          value={`${summary?.presentToday || 0} Staff`}
-          subtitle="Active on shift"
+          value={`${summary?.presentToday ?? 0} Staff`}
+          subtitle={summary?.lateToday ? `${summary.lateToday} late arrival(s)` : 'Active on shift'}
           icon={UserCheck}
           iconBg="bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
         />
         <StatCard
           title="Late Check-ins Today"
-          value={`${summary?.lateToday || 0} Staff`}
-          subtitle="Exceeded grace buffer"
+          value={`${summary?.lateToday ?? 0} Staff`}
+          subtitle="Checked in after 10:30 AM"
           icon={AlertTriangle}
           iconBg="bg-amber-500/15 text-amber-400 border-amber-500/30"
         />
         <StatCard
           title="Absent Today"
-          value={`${summary?.absentToday || 0} Staff`}
-          subtitle="Unlogged roster slots"
+          value={`${summary?.absentToday ?? 0} Staff`}
+          subtitle={summary?.onLeaveToday ? `${summary.onLeaveToday} on approved leave` : 'Unlogged past 1:00 PM'}
           icon={XCircle}
           iconBg="bg-rose-500/15 text-rose-400 border-rose-500/30"
         />
@@ -183,7 +183,8 @@ export const AttendanceManagement = () => {
         filterOptions={[
           { label: 'Present', value: 'Present' },
           { label: 'Late', value: 'Late' },
-          { label: 'Absent', value: 'Absent' }
+          { label: 'Absent', value: 'Absent' },
+          { label: 'On Leave', value: 'On Leave' }
         ]}
         pageSize={10}
       />

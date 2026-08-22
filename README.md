@@ -1,130 +1,146 @@
-# 🌟 Dayflow HRMS (Human Resource Management System)
+# Dayflow HRMS — Every workday, perfectly aligned.
 
-> **"Every workday, perfectly aligned."**
-
-Dayflow is a modern, comprehensive, and highly aesthetic Human Resource Management System (HRMS) designed to streamline employee onboarding, attendance tracking, payroll management, and overall HR operations. Built with a robust full-stack architecture, Dayflow ensures security, scalability, and an intuitive user experience.
+Dayflow is a modern, full-stack Human Resource Management System (HRMS) designed to streamline employee management, time tracking, leave requests, payroll processing, and performance reviews. It features a stunning, premium UI and a robust Node.js backend.
 
 ---
 
-## 🚀 Key Features & Working Flow
+## 🌟 Key Features
 
-### 1. 🔐 Secure & Exclusive Onboarding
-Dayflow enforces a strict invitation-only onboarding process to maintain enterprise security.
-- **HR Action:** The HR Admin logs into the portal and navigates to the Employee Management dashboard.
-- **Invitation Creation:** The admin creates a new employee profile (Name, Role, and Email) and generates an Employee ID.
-- **Email Delivery:** The system automatically sends a secure, tokenized invitation link to the new employee's email address using a configured SMTP server.
-- **Employee Activation:** The employee clicks the link, which redirects them to a secure signup page. Here, their details are pre-filled (read-only), and they only need to set their secure password to activate their account.
+### Employee Portal
+- **Dashboard**: Real-time widgets for attendance, leave balances, upcoming holidays, and recent payslips.
+- **My Profile**: View official job details, personal information, and locked (HR-managed) salary structures.
+- **My Attendance**: Check in/out with precise duration tracking and historical logs.
+- **Leave Requests**: Submit, track, and manage leave requests (Paid, Sick, Casual, Unpaid, Maternity/Paternity).
+- **My Payroll**: View salary breakdowns and download payslips.
+- **My Reviews**: View published performance reviews and self-assessments.
+- **Notifications**: Real-time alerts for leave approvals, payroll runs, and reviews.
 
-### 2. 👥 Employee Management Dashboard
-- **Directory:** View all active and deactivated employees in a clean, searchable, and filterable table.
-- **Lifecycle Management:** Edit employee details, manage roles, or securely deactivate/delete employees (cascading deletes for associated records like payroll and attendance).
-- **Auto ID Generation:** Smart logic to auto-generate unique `EMP-XXX` IDs avoiding database conflicts.
-
-### 3. 🕒 Time & Attendance Tracking
-- Employees can log their daily attendance.
-- HR can monitor check-ins, check-outs, and overall hours worked through the Time Management Dashboard.
-
-### 4. 💰 Payroll & Finance
-- **Automated Payroll Runs:** HR can generate payroll for employees based on attendance and roles.
-- **PDF Payslips:** Employees can view and download pixel-perfect, professionally formatted PDF payslips directly from their portal.
-- **Finance Overview:** Visual charts (using modern visualization libraries) to track company expenses, cash flow, and salary distributions.
-
-### 5. 🏖️ Leave Management
-- Employees can request time off via their dashboard.
-- HR receives real-time notifications and can approve or reject leave requests.
+### HR Admin Portal
+- **Admin Dashboard**: High-level KPIs, recent activities, and organizational overview.
+- **Employee Management**: Invite new employees (secure email flow), edit profiles, manage salary structures, adjust leave quotas, and handle terminations.
+- **Attendance Management**: View company-wide attendance logs and fix incorrect punches.
+- **Leave Management**: Approve or reject leave requests with comments.
+- **Payroll Management & Run**: Bulk process payroll, generate slips, and manage salary adjustments.
+- **Finance Dashboard**: Track department budgets (in INR ₹), organizational spending, and income vs. expenses.
+- **Time Management**: Live check-in feed and daily attendance KPIs.
+- **Performance Reviews**: Create, edit, and publish performance evaluations.
 
 ---
 
-## 🛠️ Technology Stack
+## 🛠️ Tech Stack
 
-**Frontend:**
-- **React.js (Vite):** Lightning-fast development environment and optimized production builds.
-- **Tailwind CSS / Vanilla CSS:** Custom, highly aesthetic UI with glassmorphism, dynamic hover effects, and modern styling.
-- **React Router:** For seamless single-page application (SPA) navigation.
+### Frontend (Client)
+- **Framework**: React 19 + Vite
+- **Styling**: Tailwind CSS
+- **Routing**: React Router DOM
+- **Icons**: Lucide React
+- **State/Context**: Context API (AuthContext, ToastContext)
 
-**Backend:**
-- **Node.js & Express.js:** Scalable and robust REST API architecture.
-- **Nodemailer:** Handles all outgoing SMTP email communications (Invitations, Password Resets).
-- **PDFKit:** Generates high-quality, perfectly aligned PDF documents (Payslips).
-- **JWT (JSON Web Tokens):** Secure, HTTP-only cookie-based authentication.
-
-**Database:**
-- **PostgreSQL (Neon DB):** Cloud-native, serverless PostgreSQL for reliable and fast data storage.
-- **pg-pool:** Efficient database connection pooling.
+### Backend (Server)
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Database**: PostgreSQL (Neon Serverless) + `pg` connection pool
+- **Architecture**: Hybrid in-memory DataStore (for quick reads/prototyping) with async database persistence.
+- **Authentication**: JWT (JSON Web Tokens) in secure `httpOnly` cookies.
+- **Validation**: Express-Validator with `.escape()` for XSS sanitization.
+- **Security**: Helmet, CORS, CSRF tokens, Rate Limiting.
+- **Emails**: Nodemailer (SMTP).
+- **PDF Generation**: PDFKit (Payslip generation).
 
 ---
 
-## ⚙️ Environment Configuration
+## 🚀 Getting Started
 
-To run this project locally, you need to configure the following environment variables in your `server/.env` file:
+### Prerequisites
+- Node.js (v18+)
+- PostgreSQL Database (Neon, Supabase, or local)
 
+### 1. Clone the repository
+```bash
+git clone https://github.com/yourusername/dayflow-hrms.git
+cd dayflow-hrms
+```
+
+### 2. Backend Setup
+Navigate to the server directory, install dependencies, and configure environment variables.
+```bash
+cd server
+npm install
+```
+
+Create a `.env` file in the `server/` directory:
 ```env
-# Server Config
 PORT=5000
-NODE_ENV=development
 CLIENT_URL=http://localhost:5173
 
-# Database (Neon PostgreSQL)
-DATABASE_URL=postgresql://user:password@endpoint.aws.neon.tech/dbname?sslmode=require
+# Database configuration (Neon Postgres recommended)
+DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
 
-# Authentication Secrets
+# JWT Secrets (Generate strong random strings)
 JWT_SECRET=your_super_secret_jwt_key
-JWT_EXPIRES_IN=1d
 JWT_REFRESH_SECRET=your_super_secret_refresh_key
-JWT_REFRESH_EXPIRES_IN=7d
-COOKIE_SECURE=false
 
-# Gmail SMTP (For Email Invitations)
-SMTP_USER=your.email@gmail.com
-SMTP_PASS=your_16_character_app_password
-```
-*(Note: You **must** use a Google App Password for `SMTP_PASS`, not your regular Gmail login password).*
-
----
-
-## 💻 Installation & Setup
-
-Follow these steps to get the system running locally from start to finish:
-
-### 1. Clone & Install Dependencies
-Open two separate terminal windows for the frontend and backend.
-
-**Terminal 1 (Backend):**
-```bash
-cd server
-npm install
+# Email configuration (SMTP)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password
+EMAIL_FROM="Dayflow HR" <your_email@gmail.com>
 ```
 
-**Terminal 2 (Frontend):**
+Start the backend server (This will automatically run DB migrations and sync data):
 ```bash
-cd client
-npm install
-```
-
-### 2. Run the Application
-
-**Terminal 1 (Backend):**
-```bash
-cd server
-node server.js
-# Or use nodemon for development: npm run dev
-```
-*Expected Output: `✅ [Neon DB] Database initialized and synchronized successfully!` and `🚀 [Dayflow Server] REST API listening on http://localhost:5000`*
-
-**Terminal 2 (Frontend):**
-```bash
-cd client
 npm run dev
 ```
-*Expected Output: Your Vite server will start on `http://localhost:5173`.*
+
+### 3. Frontend Setup
+Open a new terminal, navigate to the client directory, and install dependencies.
+```bash
+cd client
+npm install
+```
+
+Start the Vite development server:
+```bash
+npm run dev
+```
+
+The application will be available at `http://localhost:5173`.
 
 ---
 
 ## 🔒 Security Best Practices Implemented
-1. **No Manual Signups:** Prevents unauthorized users from creating accounts.
-2. **HTTP-Only Cookies:** Protects JWT tokens from Cross-Site Scripting (XSS) attacks.
-3. **Cascading Database Deletions:** Ensures no orphaned data is left behind when an employee is removed.
-4. **Environment Isolation:** Sensitive SMTP and Database credentials are strictly kept out of source code.
+- **XSS Protection**: All user inputs (addresses, remarks, feedback) are sanitized using `express-validator` `.escape()`.
+- **CSRF Protection**: Critical mutation endpoints validate a custom `X-CSRF-Token` header.
+- **Authentication**: Tokens are stored securely in `httpOnly` cookies, mitigating local storage extraction risks.
+- **Password Policies**: Enforced minimum length, uppercase, numbers, and special characters.
+- **Token Expiry**: Password reset tokens expire in 1 hour; access tokens expire in 15 minutes (with 7-day refresh).
 
 ---
-*Built with passion for modern HR Management.*
+
+## 📚 Database Schema (PostgreSQL)
+The application relies on several core tables:
+- `users`: Core authentication, roles (Admin/Employee), and password hashes.
+- `employees`: Job details, emergency contacts, reporting lines.
+- `invitations`: Secure onboarding tokens for new hires.
+- `salary_structures`: Base pay, allowances, deductions.
+- `leave_balances`: Entitlements per leave category.
+- `leave_requests`: Employee requests and admin approvals.
+- `attendance`: Daily punch-in/out logs.
+- `payslips`: Generated monthly payroll records.
+- `performance_reviews`: Manager evaluations and scores.
+- `password_reset_tokens`: Secure temporary tokens for forgotten passwords.
+
+*(Note: The DB schema automatically initializes and seeds itself upon server startup via `server/database/initDb.js`)*
+
+---
+
+## 🤝 Contribution Guidelines
+1. Fork the repository.
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
+4. Push to the branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request.
+
+---
+*Built for the modern workforce.*

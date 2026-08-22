@@ -154,16 +154,21 @@ export const TimeManagementDashboard = () => {
                   <div className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
                   <div>
                     <span className="font-bold text-slate-200 block">
-                      Employee ID: {punch.employeeId}
+                      {punch.employeeName || `Employee ID: ${punch.employeeId}`}
                     </span>
                     <span className="text-[10px] text-dark-400">
-                      In: {punch.checkIn || '—'} | Out: {punch.checkOut || 'Active'}
+                      {punch.department ? `${punch.department} • ` : ''}In: {punch.checkIn || '—'} | Out: {punch.checkOut || 'Active'}
                     </span>
                   </div>
                 </div>
                 <StatusBadge status={punch.status} />
               </div>
             ))}
+            {(!liveCheckInFeed || liveCheckInFeed.length === 0) && (
+              <div className="p-8 text-center text-xs text-dark-400">
+                No active punches recorded for this shift cycle.
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -6,6 +6,50 @@ import { query } from '../config/db.js';
 const DEFAULT_ADMIN_PASS_HASH = bcrypt.hashSync('Admin@1234', 12);
 const DEFAULT_EMP_PASS_HASH = bcrypt.hashSync('Employee@1234', 12);
 
+/**
+ * 10:30 AM Cutoff Rule for Late Check-ins
+ * If an employee clocks in after 10:30 AM, they are considered Late.
+ */
+export function isLateCheckInTime(timeStr, dateObj) {
+  if (dateObj instanceof Date) {
+    const totalMinutes = dateObj.getHours() * 60 + dateObj.getMinutes();
+    return totalMinutes > (10 * 60 + 30); // 10:30 AM (630 minutes from midnight)
+  }
+  if (!timeStr) return false;
+  try {
+    const parts = timeStr.trim().split(' ');
+    const timeParts = parts[0].split(':');
+    let hours = parseInt(timeParts[0], 10);
+    const minutes = parseInt(timeParts[1], 10) || 0;
+    const period = parts[1] ? parts[1].toUpperCase() : '';
+
+    if (period === 'PM' && hours !== 12) hours += 12;
+    if (period === 'AM' && hours === 12) hours = 0;
+
+    const totalMinutes = hours * 60 + minutes;
+    return totalMinutes > (10 * 60 + 30); // after 10:30 AM
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Format a Date object or string consistently to YYYY-MM-DD in local time
+ */
+export function formatDateStr(d) {
+  if (!d) return '';
+  if (d instanceof Date) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  if (typeof d === 'string') {
+    return d.split('T')[0];
+  }
+  return String(d).split('T')[0];
+}
+
 class DataStoreService {
   constructor() {
     this.initLocalFallback();
@@ -207,17 +251,23 @@ class DataStoreService {
 
       // 4. Fetch Attendance
       const aRes = await query('SELECT * FROM attendance ORDER BY date DESC;');
-      this.attendance = aRes.rows.map(r => ({
-        id: r.id,
-        employeeId: r.employee_id,
-        date: r.date instanceof Date ? r.date.toISOString().split('T')[0] : r.date,
-        checkIn: r.check_in,
-        checkOut: r.check_out,
-        workHours: r.work_hours,
-        status: r.status,
-        device: r.device,
-        location: r.location
-      }));
+      this.attendance = aRes.rows.map(r => {
+        let status = r.status || 'Present';
+        if (r.check_in && isLateCheckInTime(r.check_in) && status === 'Present') {
+          status = 'Late';
+        }
+        return {
+          id: r.id,
+          employeeId: r.employee_id,
+          date: formatDateStr(r.date),
+          checkIn: r.check_in,
+          checkOut: r.check_out,
+          workHours: r.work_hours,
+          status: status,
+          device: r.device,
+          location: r.location
+        };
+      });
 
       // 5. Fetch Leaves
       const lvRes = await query('SELECT * FROM leaves ORDER BY applied_at DESC;');
@@ -227,8 +277,8 @@ class DataStoreService {
         employeeName: r.employee_name,
         department: r.department,
         leaveType: r.leave_type,
-        fromDate: r.from_date instanceof Date ? r.from_date.toISOString().split('T')[0] : r.from_date,
-        toDate: r.to_date instanceof Date ? r.to_date.toISOString().split('T')[0] : r.to_date,
+        fromDate: formatDateStr(r.from_date),
+        toDate: formatDateStr(r.to_date),
         duration: r.duration,
         remarks: r.remarks,
         status: r.status,
@@ -694,12 +744,12 @@ class DataStoreService {
   }
 
   getTodayAttendance(employeeId) {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = formatDateStr(new Date());
     return this.attendance.find(a => a.employeeId === employeeId && a.date === todayStr);
   }
 
   checkIn(employeeId) {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = formatDateStr(new Date());
     const now = new Date();
     const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
@@ -709,6 +759,10 @@ class DataStoreService {
       return { record, alreadyCheckedIn: true };
     }
 
+    // Determine status based on 10:30 AM cutoff:
+    const isLate = isLateCheckInTime(null, now);
+    const punchStatus = isLate ? 'Late' : 'Present';
+
     if (!record) {
       record = {
         id: `att-${employeeId}-${todayStr}`,
@@ -717,28 +771,28 @@ class DataStoreService {
         checkIn: timeStr,
         checkOut: null,
         workHours: 'In Progress',
-        status: 'Present',
+        status: punchStatus,
         device: 'Web App Portal',
         location: 'Current Workstation'
       };
       this.attendance.unshift(record);
     } else {
       record.checkIn = timeStr;
-      record.status = 'Present';
+      record.status = punchStatus;
       record.workHours = 'In Progress';
     }
 
     query(`
       INSERT INTO attendance (employee_id, date, check_in, check_out, work_hours, status)
-      VALUES ($1, $2, $3, NULL, 'In Progress', 'Present')
-      ON CONFLICT (employee_id, date) DO UPDATE SET check_in = EXCLUDED.check_in, status = 'Present';
-    `, [employeeId, todayStr, timeStr]).catch(console.error);
+      VALUES ($1, $2, $3, NULL, 'In Progress', $4)
+      ON CONFLICT (employee_id, date) DO UPDATE SET check_in = EXCLUDED.check_in, status = $4;
+    `, [employeeId, todayStr, timeStr, punchStatus]).catch(console.error);
 
     return { record, alreadyCheckedIn: false };
   }
 
   checkOut(employeeId) {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = formatDateStr(new Date());
     const now = new Date();
     const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
