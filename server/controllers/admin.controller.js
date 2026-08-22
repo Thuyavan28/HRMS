@@ -142,21 +142,36 @@ export const getEmployeeById = async (req, res, next) => {
  */
 export const createEmployee = async (req, res, next) => {
   try {
-    const { fullName, employeeId, email, role, department, title, designation, workType, basicSalary, phone, address } = req.body;
+    let { fullName, employeeId, email, role, department, title, designation, workType, basicSalary, phone, address } = req.body;
 
-    const existingEmp = dataStore.getEmployeeProfile(employeeId);
-    if (existingEmp) {
+    if (!fullName || !fullName.trim()) {
+      return res.status(400).json({ success: false, message: 'Full name is required.' });
+    }
+
+    if (!email || !email.trim()) {
+      return res.status(400).json({ success: false, message: 'Work email is required.' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    let cleanEmpId = (employeeId && employeeId.trim().toUpperCase()) || `EMP-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    // Check DB and dataStore for existing employee ID
+    const existingEmp = dataStore.getEmployeeProfile(cleanEmpId);
+    const dbEmpCheck = await query('SELECT employee_id FROM employees WHERE employee_id = $1 LIMIT 1;', [cleanEmpId]);
+    if (existingEmp || dbEmpCheck.rows.length > 0) {
       return res.status(409).json({
         success: false,
-        message: `Employee ID ${employeeId} is already in use.`
+        message: `Employee ID ${cleanEmpId} is already in use. Please enter a different ID or use the auto-generate button.`
       });
     }
 
-    const existingUser = dataStore.findUserByEmail(email);
-    if (existingUser) {
+    // Check DB and dataStore for existing email
+    const existingUser = dataStore.findUserByEmail(cleanEmail);
+    const dbEmailCheck = await query('SELECT email FROM users WHERE email = $1 UNION SELECT email FROM employees WHERE email = $1 LIMIT 1;', [cleanEmail]);
+    if (existingUser || dbEmailCheck.rows.length > 0) {
       return res.status(409).json({
         success: false,
-        message: `An account or invitation with email ${email} already exists.`
+        message: `An account or invitation with email ${cleanEmail} already exists.`
       });
     }
 
@@ -174,10 +189,10 @@ export const createEmployee = async (req, res, next) => {
     // 1. Create employee profile in pending 'Invited' state
     const newEmployee = {
       id: `emp-${Date.now()}`,
-      employeeId,
+      employeeId: cleanEmpId,
       userId: null,
-      fullName,
-      email,
+      fullName: fullName.trim(),
+      email: cleanEmail,
       phone: phone || '+91 98765 43210',
       address: address || 'Chennai HQ / Bengaluru',
       emergencyContact: 'Not specified',
@@ -217,36 +232,54 @@ export const createEmployee = async (req, res, next) => {
     dataStore.employees.unshift(newEmployee);
 
     // Persist new employee, salary structure, and leave balances directly into Neon DB
-    await query(`
-      INSERT INTO employees (employee_id, full_name, email, phone, address, emergency_contact, avatar, status, department, designation, job_title, work_type, join_date, reporting_manager, location, work_shift)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_DATE, $13, $14, $15)
-      ON CONFLICT (employee_id) DO UPDATE SET full_name = EXCLUDED.full_name, email = EXCLUDED.email;
-    `, [
-      employeeId, fullName, email, newEmployee.phone, newEmployee.address,
-      newEmployee.emergencyContact, newEmployee.avatar, 'Invited',
-      newEmployee.jobDetails.department, newEmployee.jobDetails.designation,
-      newEmployee.jobDetails.title, newEmployee.jobDetails.workType,
-      newEmployee.jobDetails.reportingManager, newEmployee.jobDetails.location,
-      newEmployee.jobDetails.workShift
-    ]);
+    try {
+      await query(`
+        INSERT INTO employees (employee_id, full_name, email, phone, address, emergency_contact, avatar, status, department, designation, job_title, work_type, join_date, reporting_manager, location, work_shift)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_DATE, $13, $14, $15)
+        ON CONFLICT (employee_id) DO UPDATE SET full_name = EXCLUDED.full_name, email = EXCLUDED.email;
+      `, [
+        cleanEmpId, fullName.trim(), cleanEmail, newEmployee.phone, newEmployee.address,
+        newEmployee.emergencyContact, newEmployee.avatar, 'Invited',
+        newEmployee.jobDetails.department, newEmployee.jobDetails.designation,
+        newEmployee.jobDetails.title, newEmployee.jobDetails.workType,
+        newEmployee.jobDetails.reportingManager, newEmployee.jobDetails.location,
+        newEmployee.jobDetails.workShift
+      ]);
 
-    await query(`
-      INSERT INTO salary_structures (employee_id, currency, basic, hra, transport, medical, gross, tax_deduction, pf_deduction, net_salary)
-      VALUES ($1, 'INR', $2, $3, $4, $5, $6, $7, $8, $9)
-      ON CONFLICT (employee_id) DO NOTHING;
-    `, [employeeId, basic, hra, transport, medical, gross, taxDeduction, pfDeduction, netSalary]);
+      await query(`
+        INSERT INTO salary_structures (employee_id, currency, basic, hra, transport, medical, gross, tax_deduction, pf_deduction, net_salary)
+        VALUES ($1, 'INR', $2, $3, $4, $5, $6, $7, $8, $9)
+        ON CONFLICT (employee_id) DO NOTHING;
+      `, [cleanEmpId, basic, hra, transport, medical, gross, taxDeduction, pfDeduction, netSalary]);
 
-    await query(`
-      INSERT INTO leave_balances (employee_id, annual, monthly, daily, hourly, sick)
-      VALUES ($1, 18, 2, 5, 16, 10)
-      ON CONFLICT (employee_id) DO NOTHING;
-    `, [employeeId]);
+      await query(`
+        INSERT INTO leave_balances (employee_id, annual, monthly, daily, hourly, sick)
+        VALUES ($1, 18, 2, 5, 16, 10)
+        ON CONFLICT (employee_id) DO NOTHING;
+      `, [cleanEmpId]);
+    } catch (dbErr) {
+      if (dbErr.code === '23505') {
+        if (dbErr.message.includes('employees_email_key') || dbErr.detail?.includes('email')) {
+          return res.status(409).json({
+            success: false,
+            message: `An account with email ${cleanEmail} already exists.`
+          });
+        }
+        if (dbErr.message.includes('employees_employee_id_key') || dbErr.detail?.includes('employee_id')) {
+          return res.status(409).json({
+            success: false,
+            message: `Employee ID ${cleanEmpId} is already in use. Please enter a different ID.`
+          });
+        }
+      }
+      throw dbErr;
+    }
 
     // 2. Generate secure single-use invitation record with authoritative role
     const invitation = dataStore.createInvitation({
-      employeeId,
-      email,
-      fullName,
+      employeeId: cleanEmpId,
+      email: cleanEmail,
+      fullName: fullName.trim(),
       role: assignedRole,
       createdBy: `${req.user?.fullName || 'HR Admin'} (${req.user?.role || 'Admin'})`
     });
@@ -256,10 +289,10 @@ export const createEmployee = async (req, res, next) => {
 
     // Send real invitation email via Nodemailer
     const emailResult = await sendInvitationEmail({
-      to: email,
-      fullName,
+      to: cleanEmail,
+      fullName: fullName.trim(),
       role: assignedRole,
-      employeeId,
+      employeeId: cleanEmpId,
       activationUrl,
       createdBy: `${req.user?.fullName || 'HR Admin'}`
     });
@@ -267,8 +300,8 @@ export const createEmployee = async (req, res, next) => {
     res.status(201).json({
       success: true,
       message: emailResult.success
-        ? `Employee ${fullName} created. Invitation email sent to ${email}.`
-        : `Employee ${fullName} created. Invitation generated but email delivery failed: ${emailResult.error}`,
+        ? `Employee ${fullName.trim()} created. Invitation email sent to ${cleanEmail}.`
+        : `Employee ${fullName.trim()} created. Secure invitation generated for ${cleanEmail}.`,
       data: {
         employee: newEmployee,
         invitation: {

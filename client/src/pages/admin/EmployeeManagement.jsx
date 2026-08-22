@@ -35,6 +35,35 @@ export const EmployeeManagement = () => {
   const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const generateUniqueEmployeeId = (list = employees) => {
+    const existingIds = new Set(list.map(e => (e.employeeId || '').toUpperCase()));
+    let newId = '';
+    let attempts = 0;
+    do {
+      const rand = Math.floor(1000 + Math.random() * 9000);
+      newId = `EMP-${rand}`;
+      attempts++;
+    } while (existingIds.has(newId) && attempts < 100);
+    return newId;
+  };
+
+  const openAddModal = () => {
+    const nextId = generateUniqueEmployeeId(employees);
+    setFormData({
+      fullName: '',
+      employeeId: nextId,
+      email: '',
+      phone: '',
+      role: 'employee',
+      department: 'Engineering',
+      title: 'Frontend Engineer',
+      designation: 'Senior IC',
+      workType: 'Full-Time (Remote)',
+      basicSalary: 85000
+    });
+    setIsAddModalOpen(true);
+  };
+
   // Add Employee Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -90,10 +119,10 @@ export const EmployeeManagement = () => {
         setIsAddModalOpen(false);
         setGeneratedInvite(res.data);
         fetchEmployees();
-        // Reset form
+        // Reset form with new fresh unique ID
         setFormData({
           fullName: '',
-          employeeId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
+          employeeId: generateUniqueEmployeeId(),
           email: '',
           phone: '',
           role: 'employee',
@@ -101,11 +130,16 @@ export const EmployeeManagement = () => {
           title: 'Frontend Engineer',
           designation: 'Senior IC',
           workType: 'Full-Time (Remote)',
-          basicSalary: 6500
+          basicSalary: 85000
         });
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to create employee.');
+      const errMsg = err.response?.data?.message || err.message || 'Failed to create employee.';
+      toast.error(errMsg);
+      // If error was about employeeId in use, automatically generate a new unique one
+      if (errMsg.toLowerCase().includes('employee id')) {
+        setFormData(prev => ({ ...prev, employeeId: generateUniqueEmployeeId(employees) }));
+      }
     } finally {
       setCreating(false);
     }
@@ -355,7 +389,7 @@ export const EmployeeManagement = () => {
           </div>
 
           <button
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={openAddModal}
             className="btn-primary text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-glow-teal-sm"
           >
             <Plus className="w-4 h-4" />
@@ -441,16 +475,28 @@ export const EmployeeManagement = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                Employee ID (System Auto-assigned)
+              <label className="block text-xs font-semibold text-dark-300 mb-1.5 flex items-center justify-between">
+                <span>Employee ID *</span>
+                <span className="text-[10px] text-dark-400">Must be unique</span>
               </label>
-              <input
-                type="text"
-                value={formData.employeeId}
-                onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-                className="input-field font-mono"
-                required
-              />
+              <div className="relative flex items-center">
+                <input
+                  type="text"
+                  value={formData.employeeId}
+                  onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
+                  placeholder="e.g. EMP-4821"
+                  className="input-field font-mono pr-16"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, employeeId: generateUniqueEmployeeId(employees) })}
+                  className="absolute right-2 px-2 py-1 text-[10px] font-bold bg-dark-700 hover:bg-dark-600 text-teal-300 rounded border border-dark-600 flex items-center gap-1 cursor-pointer transition-colors"
+                  title="Generate fresh unique Employee ID"
+                >
+                  <RotateCcw className="w-3 h-3" /> Auto
+                </button>
+              </div>
             </div>
 
             <div>
