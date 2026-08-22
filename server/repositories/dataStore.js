@@ -468,11 +468,21 @@ class DataStoreService {
     const index = this.invitations.findIndex(i => i.id === invitationId || i.token === invitationId);
     if (index === -1) return false;
 
-    this.invitations[index].status = 'REVOKED';
+    const empId = this.invitations[index].employeeId;
+    const email = this.invitations[index].email;
 
+    // 1. Remove from in-memory invitations
+    this.invitations.splice(index, 1);
+
+    // 2. Delete from DB
     query(`
-      UPDATE invitations SET status = 'REVOKED' WHERE id::text = $1 OR token = $1;
+      DELETE FROM invitations WHERE id::text = $1 OR token = $1;
     `, [invitationId]).catch(console.error);
+
+    // 3. Delete the associated pending employee profile so the email can be used again
+    if (empId) {
+      this.deleteEmployee(empId, email);
+    }
 
     return true;
   }

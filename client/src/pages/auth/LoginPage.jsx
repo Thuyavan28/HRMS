@@ -116,7 +116,12 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-dark-900 flex flex-col justify-center items-center p-4 relative overflow-hidden">
+    <div 
+      className="min-h-screen flex flex-col justify-center items-center p-4 relative overflow-hidden bg-dark-900 bg-cover bg-center bg-no-repeat"
+      style={{
+        backgroundImage: `linear-gradient(to bottom right, rgba(13, 17, 23, 0.8), rgba(13, 17, 23, 0.95)), url('https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2069&auto=format&fit=crop')`
+      }}
+    >
       {/* Full-Screen Loader Overlay */}
       {loading && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-dark-900/95 backdrop-blur-sm auth-loader-overlay">

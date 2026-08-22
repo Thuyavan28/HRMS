@@ -18,7 +18,8 @@ import {
   RotateCcw,
   Trash2,
   Lock,
-  Sparkles
+  Sparkles,
+  AlertCircle
 } from 'lucide-react';
 import { adminService } from '../../services/adminService';
 import { DataTable } from '../../components/common/DataTable';
@@ -34,6 +35,9 @@ export const EmployeeManagement = () => {
   const [employees, setEmployees] = useState([]);
   const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [invitationToDelete, setInvitationToDelete] = useState(null);
 
   const generateUniqueEmployeeId = (list = employees) => {
     const existingIds = new Set(list.map(e => (e.employeeId || '').toUpperCase()));
@@ -170,16 +174,22 @@ export const EmployeeManagement = () => {
     }
   };
 
-  const handleRevokeInvitation = async (invId) => {
-    if (!window.confirm('Are you sure you want to revoke this invitation?')) return;
+  const handleRevokeInvitation = async () => {
+    if (!invitationToDelete) return;
     try {
-      const res = await adminService.revokeInvitation(invId);
+      const res = await adminService.revokeInvitation(invitationToDelete.id);
       if (res.success) {
-        toast.success('Invitation revoked.');
+        toast.success('Invitation deleted successfully.');
+        setInvitations(prev => prev.filter(inv => inv.id !== invitationToDelete.id));
         fetchEmployees();
+      } else {
+        toast.error('Failed to delete invitation.');
       }
     } catch (err) {
-      toast.error('Failed to revoke invitation.');
+      toast.error('Failed to delete invitation.');
+    } finally {
+      setDeleteModalOpen(false);
+      setInvitationToDelete(null);
     }
   };
 
@@ -316,7 +326,8 @@ export const EmployeeManagement = () => {
       key: 'id',
       render: (_, row) => (
         <div className="flex items-center gap-2">
-          {row.status === 'INVITED' && (
+          {/* Actions for active invitations */}
+          {(row.status === 'INVITED' || row.status === 'PENDING') && (
             <>
               <button
                 onClick={() => {
@@ -336,15 +347,20 @@ export const EmployeeManagement = () => {
               >
                 <RotateCcw className="w-3.5 h-3.5" />
               </button>
-              <button
-                onClick={() => handleRevokeInvitation(row.id)}
-                className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 cursor-pointer"
-                title="Revoke Invitation"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
             </>
           )}
+          
+          {/* Delete action is ALWAYS available */}
+          <button
+            onClick={() => {
+              setInvitationToDelete(row);
+              setDeleteModalOpen(true);
+            }}
+            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 cursor-pointer"
+            title="Delete Invitation"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         </div>
       )
     }
@@ -740,6 +756,49 @@ export const EmployeeManagement = () => {
           </div>
         </Modal>
       )}
+      {/* 5. Delete Invitation Confirmation Modal */}
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setInvitationToDelete(null);
+        }}
+        title="Delete Invitation?"
+        subtitle="This action cannot be undone. The invitation and its pending employee record will be permanently deleted."
+      >
+        <div className="p-5 flex flex-col gap-6">
+          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold mb-1">Warning</p>
+              <p className="text-rose-400/80">
+                Are you sure you want to permanently delete the invitation for <strong className="text-rose-300">{invitationToDelete?.email}</strong>? 
+                This will free up the email address to be used again.
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              onClick={() => {
+                setDeleteModalOpen(false);
+                setInvitationToDelete(null);
+              }}
+              className="px-4 py-2 rounded-xl bg-dark-700 hover:bg-dark-600 text-slate-300 text-sm font-semibold transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleRevokeInvitation}
+              className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white shadow-glow-rose-sm text-sm font-semibold transition-all cursor-pointer flex items-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Delete Permanently</span>
+            </button>
+          </div>
+        </div>
+      </Modal>
+
     </div>
   );
 };
