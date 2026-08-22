@@ -1,7 +1,12 @@
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_URL
-  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
+const isDev = import.meta.env.DEV;
+const remoteApiUrl = import.meta.env.VITE_API_URL;
+
+// In local development, use relative '/api' via Vite proxy to prevent any CORS issues
+// In production builds, use VITE_API_URL if configured, otherwise fallback to '/api'
+const BASE_URL = !isDev && remoteApiUrl
+  ? `${remoteApiUrl.replace(/\/$/, '')}/api`
   : '/api';
 
 const api = axios.create({

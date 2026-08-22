@@ -34,24 +34,19 @@ app.use(helmet({
 }));
 
 // 2. CORS Configuration (Allows frontend origin & Vercel deployments with credentials)
-app.use(cors({
+const corsOptions = {
   origin: (origin, callback) => {
+    // Reflect requesting origin to allow credentials
     if (!origin) return callback(null, true);
-    const allowed = [
-      CLIENT_URL,
-      'http://localhost:5173',
-      'http://127.0.0.1:5173',
-      'http://localhost:5000'
-    ];
-    if (allowed.includes(origin) || origin.endsWith('.vercel.app')) {
-      return callback(null, true);
-    }
     return callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token']
-}));
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token', 'Accept']
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // 3. Body & Cookie Parsing
 app.use(express.json({ limit: '5mb' }));
@@ -86,6 +81,21 @@ app.use('/api/payroll', payrollRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
+
+// Lazy DB init for Vercel serverless cold-starts
+let isDbReady = false;
+app.use(async (req, res, next) => {
+  if (process.env.VERCEL && !isDbReady) {
+    try {
+      await initializeDatabase();
+      await dataStore.syncFromPostgres();
+      isDbReady = true;
+    } catch (e) {
+      console.error('Serverless DB initialization error:', e);
+    }
+  }
+  next();
+});
 
 // 8. 404 & Error Handlers
 app.use(notFoundHandler);
@@ -129,9 +139,14 @@ const missingEnv = REQUIRED_ENV.filter(key => !process.env[key]);
 if (missingEnv.length > 0) {
   console.error(`\n❌ [Startup Error] Missing required environment variables: ${missingEnv.join(', ')}`);
   console.error('Please check your server/.env file and restart the server.\n');
-  process.exit(1);
+  if (!process.env.VERCEL) {
+    process.exit(1);
+  }
 }
 
-startServer();
+// Only start HTTP listener if running directly (not in Vercel serverless)
+if (!process.env.VERCEL) {
+  startServer();
+}
 
 export default app;
