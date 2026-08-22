@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { authService } from '../../services/authService';
 
 export const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
@@ -15,12 +16,7 @@ export const ForgotPasswordPage = () => {
     if (!email.trim()) { setError('Please enter your work email address.'); return; }
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() })
-      });
-      const data = await res.json();
+      const data = await authService.forgotPassword(email.trim());
       if (data.success) {
         setSuccess(true);
         if (data.token) setResetToken(data.token);
@@ -28,7 +24,7 @@ export const ForgotPasswordPage = () => {
         setError(data.message || 'Something went wrong. Please try again.');
       }
     } catch (err) {
-      setError('Network error. Please check your connection and try again.');
+      setError(err?.response?.data?.message || 'Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }

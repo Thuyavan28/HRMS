@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, Eye, EyeOff, ArrowLeft, Loader2, CheckCircle, AlertCircle, ShieldCheck, KeyRound } from 'lucide-react';
+import { authService } from '../../services/authService';
 
 const getStrength = (pwd) => {
   let score = 0;
@@ -55,12 +56,7 @@ export const ResetPasswordPage = () => {
     }
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: token.trim(), password })
-      });
-      const data = await res.json();
+      const data = await authService.resetPassword(token.trim(), password);
       if (data.success) {
         setSuccess(true);
         setTimeout(() => navigate('/login'), 2500);
@@ -68,7 +64,7 @@ export const ResetPasswordPage = () => {
         setError(data.message || 'Failed to reset password. The link may have expired.');
       }
     } catch (err) {
-      setError('Network error. Please check your connection and try again.');
+      setError(err?.response?.data?.message || 'Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }

@@ -24,37 +24,38 @@ export const generateTokens = (user) => {
 };
 
 export const setAuthCookies = (res, accessToken, refreshToken) => {
-  const isProd = process.env.NODE_ENV === 'production';
+  const isProd = process.env.NODE_ENV === 'production' || process.env.COOKIE_SECURE === 'true';
+
+  const cookieOptions = {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    path: '/'
+  };
 
   // Access Token Cookie (15 mins)
   res.cookie('accessToken', accessToken, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'strict' : 'lax',
+    ...cookieOptions,
     maxAge: 15 * 60 * 1000 // 15 mins
   });
 
   // Refresh Token Cookie (7 days)
   if (refreshToken) {
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'strict' : 'lax',
+      ...cookieOptions,
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
   }
 };
 
 export const clearAuthCookies = (res) => {
-  const isProd = process.env.NODE_ENV === 'production';
-  res.clearCookie('accessToken', {
+  const isProd = process.env.NODE_ENV === 'production' || process.env.COOKIE_SECURE === 'true';
+  const cookieOptions = {
     httpOnly: true,
     secure: isProd,
-    sameSite: isProd ? 'strict' : 'lax'
-  });
-  res.clearCookie('refreshToken', {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'strict' : 'lax'
-  });
+    sameSite: isProd ? 'none' : 'lax',
+    path: '/'
+  };
+  res.clearCookie('accessToken', cookieOptions);
+  res.clearCookie('refreshToken', cookieOptions);
 };
