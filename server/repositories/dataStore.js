@@ -23,46 +23,46 @@ class DataStoreService {
     this.notifications = [];
     this.finance = {
       summary: {
-        totalRevenue: 284500,
+        totalRevenue: 23700000,
         revenueChange: 14.8,
-        totalExpenses: 168400,
+        totalExpenses: 14030000,
         expenseChange: -3.2,
-        netProfit: 116100,
+        netProfit: 9670000,
         profitChange: 22.4,
-        pendingInvoices: 42300,
+        pendingInvoices: 3525000,
         invoicesCount: 8,
-        payrollSpending: 72890,
+        payrollSpending: 6070000,
         payrollChange: 5.1,
         cashRunwayMonths: 18.5
       },
       cashFlow: [
-        { month: 'Jan', revenue: 210000, expenses: 145000, net: 65000 },
-        { month: 'Feb', revenue: 225000, expenses: 148000, net: 77000 },
-        { month: 'Mar', revenue: 240000, expenses: 152000, net: 88000 },
-        { month: 'Apr', revenue: 255000, expenses: 158000, net: 97000 },
-        { month: 'May', revenue: 270000, expenses: 162000, net: 108000 },
-        { month: 'Jun', revenue: 278000, expenses: 165000, net: 113000 },
-        { month: 'Jul', revenue: 284500, expenses: 168400, net: 116100 }
+        { month: 'Jan', revenue: 17500000, expenses: 12090000, net: 5410000 },
+        { month: 'Feb', revenue: 18750000, expenses: 12340000, net: 6410000 },
+        { month: 'Mar', revenue: 20000000, expenses: 12670000, net: 7330000 },
+        { month: 'Apr', revenue: 21250000, expenses: 13170000, net: 8080000 },
+        { month: 'May', revenue: 22500000, expenses: 13500000, net: 9000000 },
+        { month: 'Jun', revenue: 23170000, expenses: 13750000, net: 9420000 },
+        { month: 'Jul', revenue: 23700000, expenses: 14030000, net: 9670000 }
       ],
       expenseCategories: [
-        { name: 'Engineering & Tech', value: 58000, color: '#00C896' },
-        { name: 'Payroll & Benefits', value: 72890, color: '#38BDF8' },
-        { name: 'Marketing & Growth', value: 21500, color: '#F59E0B' },
-        { name: 'Office & Facilities', value: 9200, color: '#A855F7' },
-        { name: 'Legal & Compliance', value: 6810, color: '#EC4899' }
+        { name: 'Engineering & Tech', value: 4830000, color: '#00C896' },
+        { name: 'Payroll & Benefits', value: 6070000, color: '#38BDF8' },
+        { name: 'Marketing & Growth', value: 1792000, color: '#F59E0B' },
+        { name: 'Office & Facilities', value:  767000, color: '#A855F7' },
+        { name: 'Legal & Compliance',  value:  567000, color: '#EC4899' }
       ],
       departmentSpending: [
-        { department: 'Engineering', budget: 90000, actual: 82400, utilization: 91.5 },
-        { department: 'Design & UX', budget: 35000, actual: 31200, utilization: 89.1 },
-        { department: 'Product', budget: 40000, actual: 36800, utilization: 92.0 },
-        { department: 'Human Resources', budget: 30000, actual: 26500, utilization: 88.3 },
-        { department: 'Infrastructure', budget: 25000, actual: 23100, utilization: 92.4 }
+        { department: 'Engineering',     budget: 7500000, actual: 6866000, utilization: 91.5 },
+        { department: 'Design & UX',     budget: 2920000, actual: 2600000, utilization: 89.1 },
+        { department: 'Product',         budget: 3330000, actual: 3067000, utilization: 92.0 },
+        { department: 'Human Resources', budget: 2500000, actual: 2209000, utilization: 88.3 },
+        { department: 'Infrastructure',  budget: 2080000, actual: 1925000, utilization: 92.4 }
       ],
       recentTransactions: [
-        { id: 'TX-8801', title: 'AWS Cloud Hosting & Kubernetes', category: 'Infrastructure', amount: 8450.0, date: '2026-08-20', status: 'Completed', type: 'Expense' },
-        { id: 'TX-8802', title: 'Enterprise SaaS Subscription (Acme Corp)', category: 'Sales', amount: 34200.0, date: '2026-08-19', status: 'Completed', type: 'Income' },
-        { id: 'TX-8803', title: 'Figma Organization Annual License', category: 'Software', amount: 4200.0, date: '2026-08-18', status: 'Completed', type: 'Expense' },
-        { id: 'TX-8804', title: 'Direct Deposit Payroll Disbursement Batch', category: 'Payroll', amount: 72890.0, date: '2026-08-15', status: 'Completed', type: 'Expense' }
+        { id: 'TX-8801', title: 'AWS Cloud Hosting & Kubernetes',      category: 'Infrastructure', amount: 704000,   date: '2026-08-20', status: 'Completed', type: 'Expense' },
+        { id: 'TX-8802', title: 'Enterprise SaaS Subscription (TCS)',  category: 'Sales',          amount: 2850000,  date: '2026-08-19', status: 'Completed', type: 'Income'  },
+        { id: 'TX-8803', title: 'Figma Organization Annual License',   category: 'Software',       amount: 350000,   date: '2026-08-18', status: 'Completed', type: 'Expense' },
+        { id: 'TX-8804', title: 'NEFT Payroll Disbursement Batch',     category: 'Payroll',        amount: 6070000,  date: '2026-08-15', status: 'Completed', type: 'Expense' }
       ]
     };
     this.timeManagement = {
@@ -82,9 +82,9 @@ class DataStoreService {
         { day: 'Fri', '08:00': 11, '10:00': 32, '12:00': 25, '14:00': 34, '16:00': 28, '18:00': 6 }
       ],
       shiftSchedules: [
-        { shiftName: 'General Morning (PST)', timing: '09:00 AM - 05:30 PM', assignedEmployees: 4, compliance: 96 },
-        { shiftName: 'Central Flexible (CST)', timing: '08:30 AM - 05:00 PM', assignedEmployees: 2, compliance: 94 },
-        { shiftName: 'Executive Shift (EST)', timing: '09:00 AM - 06:00 PM', assignedEmployees: 1, compliance: 98 }
+        { shiftName: 'General Shift (IST)',   timing: '09:00 AM - 05:30 PM', assignedEmployees: 4, compliance: 96 },
+        { shiftName: 'Flexible Shift (IST)',  timing: '08:30 AM - 05:00 PM', assignedEmployees: 2, compliance: 94 },
+        { shiftName: 'Executive Shift (IST)', timing: '09:00 AM - 06:00 PM', assignedEmployees: 1, compliance: 98 }
       ]
     };
   }
@@ -172,15 +172,15 @@ class DataStoreService {
             pfDeduction: Number(sal.pf_deduction),
             netSalary: Number(sal.net_salary)
           } : {
-            currency: 'USD',
-            basic: 6500,
-            hra: 2200,
-            transport: 600,
-            medical: 500,
-            gross: 9800,
-            taxDeduction: 1470,
-            pfDeduction: 784,
-            netSalary: 7546
+            currency: 'INR',
+            basic: 95000,
+            hra: 38000,
+            transport: 8000,
+            medical: 5000,
+            gross: 146000,
+            taxDeduction: 29200,
+            pfDeduction: 11400,
+            netSalary: 105400
           },
           leaveBalances: bal ? {
             annual: bal.annual,

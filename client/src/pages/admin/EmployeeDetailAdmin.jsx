@@ -427,7 +427,7 @@ export const EmployeeDetailAdmin = () => {
             <div>
               <span className="text-[11px] text-dark-400 uppercase font-semibold">Calculated Net Pay</span>
               <p className="text-xl font-bold text-teal-400 mt-1">
-                ${formData.salaryStructure.netSalary?.toLocaleString()} USD
+                ₹${formData.salaryStructure.netSalary?.toLocaleString()}
               </p>
             </div>
           </div>

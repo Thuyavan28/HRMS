@@ -73,7 +73,7 @@ export const FinanceDashboard = () => {
             row.type === 'Income' ? 'text-emerald-400' : 'text-rose-400'
           }`}
         >
-          {row.type === 'Income' ? '+' : '-'}${val?.toLocaleString()} USD
+          {row.type === 'Income' ? '+' : '-'}₹${val?.toLocaleString()}
         </span>
       )
     },
@@ -126,7 +126,7 @@ export const FinanceDashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <StatCard
           title="Total Monthly Revenue"
-          value={`$${summary?.totalRevenue?.toLocaleString() || 0}`}
+          value={`₹${summary?.totalRevenue?.toLocaleString() || 0}`}
           subtitle="Gross customer SaaS recurring"
           change={summary?.revenueChange}
           icon={DollarSign}
@@ -134,7 +134,7 @@ export const FinanceDashboard = () => {
         />
         <StatCard
           title="Operating Expenses"
-          value={`$${summary?.totalExpenses?.toLocaleString() || 0}`}
+          value={`₹${summary?.totalExpenses?.toLocaleString() || 0}`}
           subtitle="Tech, facilities & operations"
           change={summary?.expenseChange}
           icon={CreditCard}
@@ -142,7 +142,7 @@ export const FinanceDashboard = () => {
         />
         <StatCard
           title="Net Corporate Profit"
-          value={`$${summary?.netProfit?.toLocaleString() || 0}`}
+          value={`₹${summary?.netProfit?.toLocaleString() || 0}`}
           subtitle="Operating profit after payroll"
           change={summary?.profitChange}
           icon={TrendingUp}
@@ -150,7 +150,7 @@ export const FinanceDashboard = () => {
         />
         <StatCard
           title="Payroll Spending"
-          value={`$${summary?.payrollSpending?.toLocaleString() || 0}`}
+          value={`₹${summary?.payrollSpending?.toLocaleString() || 0}`}
           subtitle="Total workforce disbursement"
           change={summary?.payrollChange}
           icon={FileText}

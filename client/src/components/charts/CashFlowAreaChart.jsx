@@ -76,7 +76,7 @@ export const CashFlowAreaChart = ({ data = [], title = "Cash Flow & Net Profitab
               fontSize={11}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v) => `$${v / 1000}k`}
+              tickFormatter={(v) => `₹${v / 1000}k`}
             />
             <Tooltip content={<CustomTooltip />} />
             <Area

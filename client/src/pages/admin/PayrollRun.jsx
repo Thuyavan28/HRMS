@@ -94,7 +94,7 @@ export const PayrollRun = () => {
       key: 'netSalary',
       render: (val) => (
         <span className="font-bold text-teal-400 font-mono text-xs">
-          ${val?.toLocaleString()} USD
+          ₹${val?.toLocaleString()}
         </span>
       )
     },

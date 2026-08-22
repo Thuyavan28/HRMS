@@ -170,7 +170,7 @@ export const AdminDashboard = () => {
         />
         <StatCard
           title="Monthly Payroll"
-          value={`$${kpis?.totalPayrolls?.toLocaleString() || '0'}`}
+          value={`₹${kpis?.totalPayrolls?.toLocaleString() || '0'}`}
           subtitle="Net monthly disbursement"
           change={kpis?.payrollChange}
           icon={CreditCard}

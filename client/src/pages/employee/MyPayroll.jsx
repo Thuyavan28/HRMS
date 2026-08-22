@@ -84,7 +84,7 @@ export const MyPayroll = () => {
       key: 'netSalary',
       render: (val) => (
         <span className="font-bold text-teal-400 font-mono text-xs">
-          ${val?.toLocaleString()} USD
+          ₹${val?.toLocaleString()}
         </span>
       )
     },
@@ -190,7 +190,7 @@ export const MyPayroll = () => {
               </div>
               <div className="flex justify-between py-2 pt-3 font-semibold text-sm border-t border-dark-700">
                 <span className="text-slate-100">Total Gross Earnings</span>
-                <span className="text-teal-400">${current.gross?.toLocaleString()} USD</span>
+                <span className="text-teal-400">₹${current.gross?.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -216,7 +216,7 @@ export const MyPayroll = () => {
               <div className="flex justify-between py-2 pt-3 font-semibold text-sm border-t border-dark-700">
                 <span className="text-slate-100">Total Deductions</span>
                 <span className="text-rose-400">
-                  -${((current.taxDeduction || 0) + (current.pfDeduction || 0)).toLocaleString()} USD
+                  -₹${((current.taxDeduction || 0) + (current.pfDeduction || 0)).toLocaleString()}
                 </span>
               </div>
             </div>
@@ -228,7 +228,7 @@ export const MyPayroll = () => {
                   Net Disbursed Take-Home
                 </span>
                 <p className="text-2xl font-black text-teal-400 mt-0.5">
-                  ${current.netSalary?.toLocaleString()} USD
+                  ₹${current.netSalary?.toLocaleString()}
                 </p>
               </div>
               <div className="text-right text-[11px] text-dark-300">

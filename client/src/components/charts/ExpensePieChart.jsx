@@ -13,7 +13,7 @@ const CustomTooltip = ({ active, payload }) => {
     return (
       <div className="bg-dark-850 border border-dark-600 p-2.5 rounded-xl shadow-dropdown-dark text-xs">
         <p className="text-dark-300">{name}</p>
-        <p className="font-bold text-slate-100">${value.toLocaleString()} USD</p>
+        <p className="font-bold text-slate-100">₹${value.toLocaleString()}</p>
       </div>
     );
   }

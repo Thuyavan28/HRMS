@@ -405,7 +405,7 @@ export const MyProfile = () => {
             {/* Earnings Table */}
             <div className="p-4 rounded-xl bg-dark-850 border border-dark-700 space-y-3">
               <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider">
-                Monthly Earnings (USD)
+                Monthly Earnings (INR)
               </h4>
               <div className="space-y-2 text-xs divide-y divide-dark-700/50">
                 <div className="flex justify-between py-1.5">
@@ -434,7 +434,7 @@ export const MyProfile = () => {
             {/* Deductions Table */}
             <div className="p-4 rounded-xl bg-dark-850 border border-dark-700 space-y-3">
               <h4 className="text-xs font-bold text-rose-400 uppercase tracking-wider">
-                Statutory Deductions (USD)
+                Statutory Deductions (INR)
               </h4>
               <div className="space-y-2 text-xs divide-y divide-dark-700/50">
                 <div className="flex justify-between py-1.5">
@@ -460,7 +460,7 @@ export const MyProfile = () => {
             <div>
               <span className="text-xs text-dark-300 font-medium">Net Monthly Take-Home Pay</span>
               <p className="text-2xl font-black text-teal-400 mt-0.5">
-                ${profile?.salaryStructure?.netSalary?.toLocaleString()} USD
+                ₹${profile?.salaryStructure?.netSalary?.toLocaleString()}
               </p>
             </div>
             <span className="px-3 py-1.5 rounded-xl bg-teal-500/20 text-teal-300 text-xs font-bold border border-teal-500/30">

@@ -158,7 +158,7 @@ export const PayrollManagement = () => {
       key: 'netSalary',
       render: (val) => (
         <span className="font-bold text-teal-400 font-mono text-xs">
-          ${val?.toLocaleString()} USD
+          ₹${val?.toLocaleString()}
         </span>
       )
     },
@@ -244,21 +244,21 @@ export const PayrollManagement = () => {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <StatCard
           title="Total Net Disbursed"
-          value={`$${summary?.totalDisbursed?.toLocaleString() || 0}`}
+          value={`₹${summary?.totalDisbursed?.toLocaleString() || 0}`}
           subtitle="Net funds distributed to accounts"
           icon={CreditCard}
           iconBg="bg-teal-500/15 text-teal-400 border-teal-500/30"
         />
         <StatCard
           title="Total Gross Compensation"
-          value={`$${summary?.totalGross?.toLocaleString() || 0}`}
+          value={`₹${summary?.totalGross?.toLocaleString() || 0}`}
           subtitle="Pre-tax corporate payroll obligation"
           icon={DollarSign}
           iconBg="bg-sky-500/15 text-sky-400 border-sky-500/30"
         />
         <StatCard
           title="Taxes & PF Withheld"
-          value={`$${summary?.totalTaxesWithheld?.toLocaleString() || 0}`}
+          value={`₹${summary?.totalTaxesWithheld?.toLocaleString() || 0}`}
           subtitle="Statutory compliance deductions"
           icon={Clock}
           iconBg="bg-amber-500/15 text-amber-400 border-amber-500/30"
