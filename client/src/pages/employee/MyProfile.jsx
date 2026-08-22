@@ -410,23 +410,23 @@ export const MyProfile = () => {
               <div className="space-y-2 text-xs divide-y divide-dark-700/50">
                 <div className="flex justify-between py-1.5">
                   <span className="text-dark-300">Basic Pay</span>
-                  <span className="font-bold text-slate-100">${profile?.salaryStructure?.basic?.toLocaleString()}</span>
+                  <span className="font-bold text-slate-100">₹{profile?.salaryStructure?.basic?.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between py-1.5">
                   <span className="text-dark-300">House Rent Allowance (HRA)</span>
-                  <span className="font-bold text-slate-100">${profile?.salaryStructure?.hra?.toLocaleString()}</span>
+                  <span className="font-bold text-slate-100">₹{profile?.salaryStructure?.hra?.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between py-1.5">
                   <span className="text-dark-300">Transport Allowance</span>
-                  <span className="font-bold text-slate-100">${profile?.salaryStructure?.transport?.toLocaleString()}</span>
+                  <span className="font-bold text-slate-100">₹{profile?.salaryStructure?.transport?.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between py-1.5">
                   <span className="text-dark-300">Medical Allowance</span>
-                  <span className="font-bold text-slate-100">${profile?.salaryStructure?.medical?.toLocaleString()}</span>
+                  <span className="font-bold text-slate-100">₹{profile?.salaryStructure?.medical?.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between py-2 pt-3 font-semibold text-sm border-t border-dark-700">
                   <span className="text-slate-100">Gross Earnings</span>
-                  <span className="text-teal-400">${profile?.salaryStructure?.gross?.toLocaleString()}</span>
+                  <span className="text-teal-400">₹{profile?.salaryStructure?.gross?.toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -439,16 +439,16 @@ export const MyProfile = () => {
               <div className="space-y-2 text-xs divide-y divide-dark-700/50">
                 <div className="flex justify-between py-1.5">
                   <span className="text-dark-300">Income Tax Withholding (TDS)</span>
-                  <span className="font-bold text-rose-400">-${profile?.salaryStructure?.taxDeduction?.toLocaleString()}</span>
+                  <span className="font-bold text-rose-400">-₹{profile?.salaryStructure?.taxDeduction?.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between py-1.5">
                   <span className="text-dark-300">Provident Fund (PF) Contribution</span>
-                  <span className="font-bold text-rose-400">-${profile?.salaryStructure?.pfDeduction?.toLocaleString()}</span>
+                  <span className="font-bold text-rose-400">-₹{profile?.salaryStructure?.pfDeduction?.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between py-2 pt-3 font-semibold text-sm border-t border-dark-700">
                   <span className="text-slate-100">Total Deductions</span>
                   <span className="text-rose-400">
-                    -${((profile?.salaryStructure?.taxDeduction || 0) + (profile?.salaryStructure?.pfDeduction || 0)).toLocaleString()}
+                    -₹{((profile?.salaryStructure?.taxDeduction || 0) + (profile?.salaryStructure?.pfDeduction || 0)).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -460,7 +460,7 @@ export const MyProfile = () => {
             <div>
               <span className="text-xs text-dark-300 font-medium">Net Monthly Take-Home Pay</span>
               <p className="text-2xl font-black text-teal-400 mt-0.5">
-                ₹${profile?.salaryStructure?.netSalary?.toLocaleString()}
+                ₹{profile?.salaryStructure?.netSalary?.toLocaleString()}
               </p>
             </div>
             <span className="px-3 py-1.5 rounded-xl bg-teal-500/20 text-teal-300 text-xs font-bold border border-teal-500/30">

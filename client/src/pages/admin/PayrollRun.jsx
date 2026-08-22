@@ -82,19 +82,19 @@ export const PayrollRun = () => {
     {
       header: 'Gross Pay',
       key: 'gross',
-      render: (val) => <span className="font-mono text-xs text-slate-200">${val?.toLocaleString()}</span>
+      render: (val) => <span className="font-mono text-xs text-slate-200">₹{val?.toLocaleString()}</span>
     },
     {
       header: 'Tax Withheld',
       key: 'taxDeduction',
-      render: (val) => <span className="font-mono text-xs text-rose-400">-${val?.toLocaleString()}</span>
+      render: (val) => <span className="font-mono text-xs text-rose-400">-₹{val?.toLocaleString()}</span>
     },
     {
       header: 'Net Take-Home',
       key: 'netSalary',
       render: (val) => (
         <span className="font-bold text-teal-400 font-mono text-xs">
-          ₹${val?.toLocaleString()}
+          ₹{val?.toLocaleString()}
         </span>
       )
     },

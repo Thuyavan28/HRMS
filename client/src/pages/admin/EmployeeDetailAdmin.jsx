@@ -371,7 +371,7 @@ export const EmployeeDetailAdmin = () => {
           <h3 className="text-base font-bold text-slate-100">Monthly Compensation Structure & Tax Policy</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-dark-300 mb-1.5">Basic Salary ($)</label>
+              <label className="block text-xs font-semibold text-dark-300 mb-1.5">Basic Salary (₹)</label>
               <input
                 type="number"
                 value={formData.salaryStructure.basic}
@@ -381,7 +381,7 @@ export const EmployeeDetailAdmin = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-dark-300 mb-1.5">HRA Allowance ($)</label>
+              <label className="block text-xs font-semibold text-dark-300 mb-1.5">HRA Allowance (₹)</label>
               <input
                 type="number"
                 value={formData.salaryStructure.hra}
@@ -391,7 +391,7 @@ export const EmployeeDetailAdmin = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-dark-300 mb-1.5">Transport ($)</label>
+              <label className="block text-xs font-semibold text-dark-300 mb-1.5">Transport (₹)</label>
               <input
                 type="number"
                 value={formData.salaryStructure.transport}
@@ -401,7 +401,7 @@ export const EmployeeDetailAdmin = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-dark-300 mb-1.5">Medical ($)</label>
+              <label className="block text-xs font-semibold text-dark-300 mb-1.5">Medical (₹)</label>
               <input
                 type="number"
                 value={formData.salaryStructure.medical}
@@ -415,19 +415,19 @@ export const EmployeeDetailAdmin = () => {
             <div>
               <span className="text-[11px] text-dark-400 uppercase font-semibold">Total Gross Pay</span>
               <p className="text-xl font-bold text-slate-100 mt-1">
-                ${formData.salaryStructure.gross?.toLocaleString()}
+                ₹{formData.salaryStructure.gross?.toLocaleString()}
               </p>
             </div>
             <div>
               <span className="text-[11px] text-dark-400 uppercase font-semibold">Est. Tax & PF</span>
               <p className="text-xl font-bold text-rose-400 mt-1">
-                -${((formData.salaryStructure.taxDeduction || 0) + (formData.salaryStructure.pfDeduction || 0)).toLocaleString()}
+                -₹{((formData.salaryStructure.taxDeduction || 0) + (formData.salaryStructure.pfDeduction || 0)).toLocaleString()}
               </p>
             </div>
             <div>
               <span className="text-[11px] text-dark-400 uppercase font-semibold">Calculated Net Pay</span>
               <p className="text-xl font-bold text-teal-400 mt-1">
-                ₹${formData.salaryStructure.netSalary?.toLocaleString()}
+                ₹{formData.salaryStructure.netSalary?.toLocaleString()}
               </p>
             </div>
           </div>

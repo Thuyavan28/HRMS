@@ -45,24 +45,24 @@ export const generatePayslipPdf = (payrollRecord, employeeProfile, res) => {
   // Earnings Header
   doc.rect(40, tableTop, 245, 24).fill('#F1F5F9');
   doc.fillColor('#1E293B').fontSize(10).text('Earnings', 50, tableTop + 6, { bold: true });
-  doc.text('Amount (USD)', 200, tableTop + 6, { bold: true, align: 'right' });
+  doc.text('Amount (INR)', 200, tableTop + 6, { bold: true, align: 'right' });
 
   // Deductions Header
   doc.rect(310, tableTop, 245, 24).fill('#F1F5F9');
   doc.fillColor('#1E293B').fontSize(10).text('Deductions', 320, tableTop + 6, { bold: true });
-  doc.text('Amount (USD)', 470, tableTop + 6, { bold: true, align: 'right' });
+  doc.text('Amount (INR)', 470, tableTop + 6, { bold: true, align: 'right' });
 
   // Rows
   const earnings = [
-    { label: 'Basic Salary', amount: `$${payrollRecord.basic.toLocaleString()}` },
-    { label: 'House Rent Allowance (HRA)', amount: `$${payrollRecord.hra.toLocaleString()}` },
-    { label: 'Transport Allowance', amount: `$${payrollRecord.transport.toLocaleString()}` },
-    { label: 'Medical Allowance', amount: `$${payrollRecord.medical.toLocaleString()}` }
+    { label: 'Basic Salary', amount: `₹${payrollRecord.basic.toLocaleString()}` },
+    { label: 'House Rent Allowance (HRA)', amount: `₹${payrollRecord.hra.toLocaleString()}` },
+    { label: 'Transport Allowance', amount: `₹${payrollRecord.transport.toLocaleString()}` },
+    { label: 'Medical Allowance', amount: `₹${payrollRecord.medical.toLocaleString()}` }
   ];
 
   const deductions = [
-    { label: 'Income Tax Deduction', amount: `$${payrollRecord.taxDeduction.toLocaleString()}` },
-    { label: 'Provident Fund (PF)', amount: `$${payrollRecord.pfDeduction.toLocaleString()}` }
+    { label: 'Income Tax Deduction', amount: `₹${payrollRecord.taxDeduction.toLocaleString()}` },
+    { label: 'Provident Fund (PF)', amount: `₹${payrollRecord.pfDeduction.toLocaleString()}` }
   ];
 
   let currentY = tableTop + 32;
@@ -85,18 +85,18 @@ export const generatePayslipPdf = (payrollRecord, employeeProfile, res) => {
 
   doc.fillColor('#1E293B').fontSize(10);
   doc.text('Gross Earnings:', 50, currentY, { bold: true });
-  doc.text(`$${payrollRecord.gross.toLocaleString()}`, 200, currentY, { bold: true, align: 'right' });
+  doc.text(`₹${payrollRecord.gross.toLocaleString()}`, 200, currentY, { bold: true, align: 'right' });
 
   const totalDeductions = payrollRecord.taxDeduction + payrollRecord.pfDeduction;
   doc.text('Total Deductions:', 320, currentY, { bold: true });
-  doc.text(`$${totalDeductions.toLocaleString()}`, 470, currentY, { bold: true, align: 'right' });
+  doc.text(`₹${totalDeductions.toLocaleString()}`, 470, currentY, { bold: true, align: 'right' });
 
   // 4. Net Salary Highlight Box
   currentY += 35;
   doc.rect(40, currentY, 515, 45).fill('#F0FDF4');
   doc.rect(40, currentY, 515, 45).strokeColor('#86EFAC').stroke();
   doc.fillColor('#166534').fontSize(12).text('NET TAKE-HOME SALARY:', 60, currentY + 15, { bold: true });
-  doc.fillColor('#15803D').fontSize(16).text(`$${payrollRecord.netSalary.toLocaleString()} USD`, 360, currentY + 12, { bold: true, align: 'right' });
+  doc.fillColor('#15803D').fontSize(16).text(`₹${payrollRecord.netSalary.toLocaleString()} INR`, 360, currentY + 12, { bold: true, align: 'right' });
 
   // 5. Footer & Authenticity
   const footerY = 560;

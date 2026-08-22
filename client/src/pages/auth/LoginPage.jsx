@@ -213,7 +213,7 @@ export const LoginPage = () => {
                   <ShieldCheck className="w-4 h-4 text-amber-400" />
                   <div>
                     <p className="text-xs font-bold text-slate-200 group-hover:text-amber-400">
-                      Eleanor Vance
+                      Ananya Krishnan
                     </p>
                     <p className="text-[10px] text-dark-400 font-mono">HR Admin Role</p>
                   </div>
@@ -229,7 +229,7 @@ export const LoginPage = () => {
                   <UserCheck className="w-4 h-4 text-teal-400" />
                   <div>
                     <p className="text-xs font-bold text-slate-200 group-hover:text-teal-400">
-                      Alex Morgan
+                      Arjun Sharma
                     </p>
                     <p className="text-[10px] text-dark-400 font-mono">Employee Role</p>
                   </div>

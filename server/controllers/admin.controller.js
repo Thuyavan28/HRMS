@@ -161,12 +161,12 @@ export const createEmployee = async (req, res, next) => {
 
     const assignedRole = role === 'admin' ? 'admin' : 'employee';
 
-    const basic = Number(basicSalary) || 6000;
-    const hra = Math.round(basic * 0.3);
-    const transport = 500;
-    const medical = 500;
+    const basic = Number(basicSalary) || 85000;
+    const hra = Math.round(basic * 0.4);
+    const transport = 8000;
+    const medical = 5000;
     const gross = basic + hra + transport + medical;
-    const taxDeduction = Math.round(gross * 0.15);
+    const taxDeduction = Math.round(gross * 0.20);
     const pfDeduction = Math.round(basic * 0.12);
     const netSalary = gross - taxDeduction - pfDeduction;
 
@@ -177,8 +177,8 @@ export const createEmployee = async (req, res, next) => {
       userId: null,
       fullName,
       email,
-      phone: phone || '+1 (555) 000-0000',
-      address: address || 'Corporate Headquarters',
+      phone: phone || '+91 98765 43210',
+      address: address || 'Chennai HQ / Bengaluru',
       emergencyContact: 'Not specified',
       avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=256&auto=format&fit=crop',
       status: 'Invited', // Will become 'Active' upon invitation setup
@@ -188,12 +188,12 @@ export const createEmployee = async (req, res, next) => {
         designation: designation || 'Staff IC',
         workType: workType || 'Full-Time (Remote)',
         joinDate: new Date().toISOString().split('T')[0],
-        reportingManager: req.user?.fullName || 'Eleanor Vance',
+        reportingManager: req.user?.fullName || 'Ananya Krishnan',
         location: 'HQ / Remote',
-        workShift: '09:00 AM - 05:30 PM'
+        workShift: '09:00 AM - 05:30 PM (IST)'
       },
       salaryStructure: {
-        currency: 'USD',
+        currency: 'INR',
         basic,
         hra,
         transport,
@@ -231,7 +231,7 @@ export const createEmployee = async (req, res, next) => {
 
     await query(`
       INSERT INTO salary_structures (employee_id, currency, basic, hra, transport, medical, gross, tax_deduction, pf_deduction, net_salary)
-      VALUES ($1, 'USD', $2, $3, $4, $5, $6, $7, $8, $9)
+      VALUES ($1, 'INR', $2, $3, $4, $5, $6, $7, $8, $9)
       ON CONFLICT (employee_id) DO NOTHING;
     `, [employeeId, basic, hra, transport, medical, gross, taxDeduction, pfDeduction, netSalary]);
 
@@ -461,7 +461,7 @@ export const approveLeave = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { comment } = req.body;
-    const adminName = req.user.fullName || 'Eleanor Vance';
+    const adminName = req.user.fullName || 'Ananya Krishnan';
 
     const updated = dataStore.updateLeaveStatus(id, 'Approved', comment, adminName);
     if (!updated) {
@@ -485,7 +485,7 @@ export const rejectLeave = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { comment } = req.body;
-    const adminName = req.user.fullName || 'Eleanor Vance';
+    const adminName = req.user.fullName || 'Ananya Krishnan';
 
     const updated = dataStore.updateLeaveStatus(id, 'Rejected', comment, adminName);
     if (!updated) {
@@ -633,7 +633,7 @@ export const createAdminReview = async (req, res, next) => {
   try {
     const newRev = dataStore.createReview({
       ...req.body,
-      reviewer: req.user.fullName || 'Eleanor Vance',
+      reviewer: req.user.fullName || 'Ananya Krishnan',
       reviewerRole: 'VP of HR'
     });
 

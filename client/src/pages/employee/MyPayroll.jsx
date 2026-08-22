@@ -77,14 +77,14 @@ export const MyPayroll = () => {
     {
       header: 'Gross Pay',
       key: 'gross',
-      render: (val) => <span className="font-mono text-xs text-slate-200">${val?.toLocaleString()}</span>
+      render: (val) => <span className="font-mono text-xs text-slate-200">₹{val?.toLocaleString()}</span>
     },
     {
       header: 'Net Take-Home',
       key: 'netSalary',
       render: (val) => (
         <span className="font-bold text-teal-400 font-mono text-xs">
-          ₹${val?.toLocaleString()}
+          ₹{val?.toLocaleString()}
         </span>
       )
     },
@@ -174,23 +174,23 @@ export const MyPayroll = () => {
             <div className="space-y-2.5 text-xs divide-y divide-dark-700/50">
               <div className="flex justify-between py-1.5">
                 <span className="text-dark-300">Basic Salary</span>
-                <span className="font-bold text-slate-100">${current.basic?.toLocaleString()}</span>
+                <span className="font-bold text-slate-100">₹{current.basic?.toLocaleString()}</span>
               </div>
               <div className="flex justify-between py-1.5">
                 <span className="text-dark-300">House Rent Allowance (HRA)</span>
-                <span className="font-bold text-slate-100">${current.hra?.toLocaleString()}</span>
+                <span className="font-bold text-slate-100">₹{current.hra?.toLocaleString()}</span>
               </div>
               <div className="flex justify-between py-1.5">
                 <span className="text-dark-300">Transport Allowance</span>
-                <span className="font-bold text-slate-100">${current.transport?.toLocaleString()}</span>
+                <span className="font-bold text-slate-100">₹{current.transport?.toLocaleString()}</span>
               </div>
               <div className="flex justify-between py-1.5">
                 <span className="text-dark-300">Medical Allowance</span>
-                <span className="font-bold text-slate-100">${current.medical?.toLocaleString()}</span>
+                <span className="font-bold text-slate-100">₹{current.medical?.toLocaleString()}</span>
               </div>
               <div className="flex justify-between py-2 pt-3 font-semibold text-sm border-t border-dark-700">
                 <span className="text-slate-100">Total Gross Earnings</span>
-                <span className="text-teal-400">₹${current.gross?.toLocaleString()}</span>
+                <span className="text-teal-400">₹{current.gross?.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -207,16 +207,16 @@ export const MyPayroll = () => {
             <div className="space-y-2.5 text-xs divide-y divide-dark-700/50">
               <div className="flex justify-between py-1.5">
                 <span className="text-dark-300">Income Tax Deduction</span>
-                <span className="font-bold text-rose-400">-${current.taxDeduction?.toLocaleString()}</span>
+                <span className="font-bold text-rose-400">-₹{current.taxDeduction?.toLocaleString()}</span>
               </div>
               <div className="flex justify-between py-1.5">
                 <span className="text-dark-300">Provident Fund (PF) Contribution</span>
-                <span className="font-bold text-rose-400">-${current.pfDeduction?.toLocaleString()}</span>
+                <span className="font-bold text-rose-400">-₹{current.pfDeduction?.toLocaleString()}</span>
               </div>
               <div className="flex justify-between py-2 pt-3 font-semibold text-sm border-t border-dark-700">
                 <span className="text-slate-100">Total Deductions</span>
                 <span className="text-rose-400">
-                  -₹${((current.taxDeduction || 0) + (current.pfDeduction || 0)).toLocaleString()}
+                  -₹{((current.taxDeduction || 0) + (current.pfDeduction || 0)).toLocaleString()}
                 </span>
               </div>
             </div>
@@ -228,11 +228,11 @@ export const MyPayroll = () => {
                   Net Disbursed Take-Home
                 </span>
                 <p className="text-2xl font-black text-teal-400 mt-0.5">
-                  ₹${current.netSalary?.toLocaleString()}
+                  ₹{current.netSalary?.toLocaleString()}
                 </p>
               </div>
               <div className="text-right text-[11px] text-dark-300">
-                <span>Direct ACH Transfer</span>
+                <span>NEFT / Direct Credit</span>
                 <p className="text-slate-200 font-medium">{current.paymentDate || 'End of month'}</p>
               </div>
             </div>

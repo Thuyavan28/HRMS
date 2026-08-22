@@ -128,28 +128,28 @@ export const PayrollManagement = () => {
     {
       header: 'Basic Salary',
       key: 'basic',
-      render: (val) => <span className="font-mono text-xs text-slate-200">${val?.toLocaleString()}</span>
+      render: (val) => <span className="font-mono text-xs text-slate-200">₹{val?.toLocaleString()}</span>
     },
     {
       header: 'Allowances (HRA/Transport/Med)',
       key: 'hra',
       render: (_, row) => (
         <span className="font-mono text-xs text-dark-300">
-          +${((row.hra || 0) + (row.transport || 0) + (row.medical || 0)).toLocaleString()}
+          +₹{((row.hra || 0) + (row.transport || 0) + (row.medical || 0)).toLocaleString()}
         </span>
       )
     },
     {
       header: 'Gross Total',
       key: 'gross',
-      render: (val) => <span className="font-mono text-xs text-slate-200">${val?.toLocaleString()}</span>
+      render: (val) => <span className="font-mono text-xs text-slate-200">₹{val?.toLocaleString()}</span>
     },
     {
       header: 'Deductions (Tax/PF)',
       key: 'taxDeduction',
       render: (_, row) => (
         <span className="font-mono text-xs text-rose-400">
-          -${((row.taxDeduction || 0) + (row.pfDeduction || 0)).toLocaleString()}
+          -₹{((row.taxDeduction || 0) + (row.pfDeduction || 0)).toLocaleString()}
         </span>
       )
     },
@@ -158,7 +158,7 @@ export const PayrollManagement = () => {
       key: 'netSalary',
       render: (val) => (
         <span className="font-bold text-teal-400 font-mono text-xs">
-          ₹${val?.toLocaleString()}
+          ₹{val?.toLocaleString()}
         </span>
       )
     },
@@ -317,7 +317,7 @@ export const PayrollManagement = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                Basic Pay ($)
+                Basic Pay (₹)
               </label>
               <input
                 type="number"
@@ -329,7 +329,7 @@ export const PayrollManagement = () => {
             </div>
             <div>
               <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                HRA Allowance ($)
+                HRA Allowance (₹)
               </label>
               <input
                 type="number"
@@ -341,7 +341,7 @@ export const PayrollManagement = () => {
             </div>
             <div>
               <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                Transport Allowance ($)
+                Transport Allowance (₹)
               </label>
               <input
                 type="number"
@@ -353,7 +353,7 @@ export const PayrollManagement = () => {
             </div>
             <div>
               <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                Medical Allowance ($)
+                Medical Allowance (₹)
               </label>
               <input
                 type="number"

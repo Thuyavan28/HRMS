@@ -48,7 +48,7 @@ export const EmployeeManagement = () => {
     title: 'Frontend Engineer',
     designation: 'Senior IC',
     workType: 'Full-Time (Remote)',
-    basicSalary: 6500
+    basicSalary: 85000
   });
 
   // Generated Invitation Success Dialog
@@ -477,7 +477,7 @@ export const EmployeeManagement = () => {
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+1 (555) 000-0000"
+                placeholder="+91 98765 43210"
                 className="input-field"
               />
             </div>
@@ -583,7 +583,7 @@ export const EmployeeManagement = () => {
 
             <div>
               <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                Base Monthly Salary ($)
+                Base Monthly Salary (₹)
               </label>
               <input
                 type="number"
