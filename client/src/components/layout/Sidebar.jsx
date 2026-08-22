@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   User,
@@ -16,15 +16,25 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
-  Briefcase
+  Briefcase,
+  LogOut
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { notificationService } from '../../services/notificationService';
 
 export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
-  const { user, role } = useAuth();
+  const { user, role, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const toast = useToast();
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const handleLogout = async () => {
+    await logout();
+    toast.info('You have been signed out.');
+    navigate('/login');
+  };
 
   useEffect(() => {
     if (role === 'employee') {
@@ -155,21 +165,41 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         </div>
       </div>
 
-      {/* Bottom Profile / Collapse Controls */}
-      <div className="p-3 border-t border-dark-700 bg-dark-850/50">
-        {!isCollapsed && user && (
-          <div className="flex items-center gap-3 p-2 rounded-xl bg-dark-800 border border-dark-700 mb-2">
-            <img
-              src={user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop'}
-              alt={user.fullName}
-              className="w-8 h-8 rounded-full object-cover border border-teal-500/50"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-slate-100 truncate">{user.fullName}</p>
-              <p className="text-[10px] text-dark-300 capitalize">{user.role} Portal</p>
+      {/* Bottom Profile / Sign Out / Collapse Controls */}
+      <div className="p-3 border-t border-dark-700 bg-dark-850/50 space-y-2">
+        {!isCollapsed && user ? (
+          <div className="flex items-center justify-between p-2 rounded-xl bg-dark-800 border border-dark-700">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <img
+                src={user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop'}
+                alt={user.fullName}
+                className="w-8 h-8 rounded-full object-cover border border-teal-500/50 flex-shrink-0"
+              />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-slate-100 truncate">{user.fullName}</p>
+                <p className="text-[10px] text-dark-300 capitalize">{user.role} Portal</p>
+              </div>
             </div>
+
+            <button
+              onClick={handleLogout}
+              className="p-1.5 rounded-lg text-dark-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer flex-shrink-0"
+              title="Sign Out / Logout"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
-        )}
+        ) : isCollapsed && user ? (
+          <div className="flex flex-col items-center">
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-xl text-dark-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        ) : null}
 
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
